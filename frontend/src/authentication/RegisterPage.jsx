@@ -447,7 +447,6 @@ const RegisterPage = () => {
           </form>
         </div>
       </div>
-        //! PEDE KAYO GUMAWA NG RegisterPage.css then lagay niyo tong style doon
       <style jsx>{`
         @keyframes fade-in {
           from {
