@@ -16,7 +16,7 @@ import {
   PhoneCall,
 } from "lucide-react";
 
-const LandingPage = () => {
+const UserLandingPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const navigate = useNavigate();
@@ -261,4 +261,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default UserLandingPage;
