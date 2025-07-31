@@ -22,11 +22,11 @@ const RegisterPage = () => {
     email: "",
     password: "",
     phoneNumber: "",
-    role: "user", 
+    role: "user", // Default role is user
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState("");
+  const [focusedField, setFocusedField] = useState(""); // State for input focus styling
   const [validations, setValidations] = useState({
     firstName: false,
     lastName: false,
@@ -71,7 +71,7 @@ const RegisterPage = () => {
       !form.email ||
       !form.password ||
       !form.phoneNumber ||
-      !form.role 
+      !form.role // Check if role is selected
     ) {
       toast.error("All fields are required!");
       return;
@@ -105,7 +105,7 @@ const RegisterPage = () => {
     }
   };
 
-
+  // Helper function for input styling
   const inputClasses = (fieldName) => `
     w-full px-4 py-4 pl-12 bg-white/5 border rounded-xl
     transition-all duration-300 ease-out text-gray-800 placeholder-gray-400
@@ -419,7 +419,7 @@ const RegisterPage = () => {
               <p className="text-gray-600 mb-4">
                 Already have an account?{" "}
                 <Link
-                  to="/"
+                  to="/login"
                   className="text-teal-600 hover:text-teal-800 font-medium underline decoration-teal-600 underline-offset-4 hover:decoration-teal-800 transition-all duration-200"
                 >
                   Sign in here
@@ -447,6 +447,7 @@ const RegisterPage = () => {
           </form>
         </div>
       </div>
+
       <style jsx>{`
         @keyframes fade-in {
           from {
