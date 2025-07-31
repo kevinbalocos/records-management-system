@@ -6,9 +6,28 @@ require("dotenv").config();
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const transporter = require("./mailer");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+if (!fs.existsSync("./uploads")) {
+  fs.mkdirSync("./uploads");
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + "-" + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ storage });
 
 const app = express();
 const PORT = 5000;
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -88,6 +107,7 @@ app.post("/api/login", (req, res) => {
         message: "Login successful",
         role: user.role,
         status: user.status,
+        user: { id: user.id, email: user.email },
       });
     }
 
@@ -103,9 +123,29 @@ app.post("/api/login", (req, res) => {
       message: "Login successful",
       role: user.role,
       status: user.status,
+      user: { id: user.id, email: user.email },
     });
   });
 });
+
+app.post("/api/requests", upload.single("file"), (req, res) => {
+  const { type, details, user_id } = req.body; 
+  const filePath = req.file ? req.file.filename : null;
+
+  if (!type || !details || !user_id || !filePath) {
+    return res.status(400).json({ message: "Missing required fields." });
+  }
+
+  const query = "INSERT INTO requests (user_id, type, details, file_path) VALUES (?, ?, ?, ?)";
+  db.query(query, [user_id, type, details, filePath], (err, result) => {
+    if (err) {
+      console.error("Failed to insert request:", err);
+      return res.status(500).json({ message: "Server error while saving request" });
+    }
+    res.status(201).json({ message: "Request submitted successfully", id: result.insertId });
+  });
+});
+
 
 app.post("/api/register", (req, res) => {
   const { firstName, lastName, email, password, phoneNumber, role } = req.body; 
@@ -302,6 +342,22 @@ app.post("/api/users/:id/status", (req, res) => {
   });
 });
 
+app.get("/api/user/:id", (req, res) => {
+  const userId = req.params.id;
+  const query = "SELECT name, email FROM users WHERE id = ?";
+
+  db.query(query, [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    if (results.length === 0) return res.status(404).json({ message: "User not found" });
+
+    const user = results[0];
+    res.json({
+      fullName: user.name,
+      email: user.email,
+    });
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
