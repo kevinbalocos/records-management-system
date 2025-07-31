@@ -17,7 +17,7 @@ const LoginPage = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState(""); 
+  const [focusedField, setFocusedField] = useState("");
   const [validations, setValidations] = useState({
     email: false,
     password: false,
@@ -57,32 +57,29 @@ const LoginPage = () => {
 
       localStorage.setItem("userRole", role);
       localStorage.setItem("userStatus", status);
-      localStorage.setItem("userEmail", form.email); 
+      localStorage.setItem("userEmail", form.email);
 
       toast.success("Login successful!");
 
       if (role === "superadmin") {
-        navigate("/admin"); 
+        navigate("/admin");
       } else if (role === "admin") {
         if (status === "approved") {
-          navigate("/admin"); 
+          navigate("/admin");
         } else {
-     
           toast.error("Your admin account is pending approval.");
-      
+
           navigate("/");
         }
       } else if (role === "user") {
         if (status === "approved") {
-          navigate("/landing"); 
+          navigate("/landing");
         } else {
-      
           toast.error("Your user account is pending approval.");
-       
+
           navigate("/");
         }
       } else {
-       
         toast.error(
           "Login successful, but role/status not recognized. Contact support."
         );

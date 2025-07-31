@@ -4,18 +4,22 @@ import RegisterPage from "./authentication/RegisterPage";
 import UserLandingPage from "./LandingPages/UserLandingPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import AdminPage from "./authentication/Admin-SuperAdminPage";
+import AdminAndSuperAdminPage from "./authentication/Admin-SuperAdminPage"; // Corrected import name
 import VerifyEmailPage from "./authentication/VerifyEmailPage";
+import EntryPage from "./FrontPage/EntryPage"; // Import the new EntryPage
 
 const App = () => {
   return (
     <>
       <ToastContainer />
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        {/* Entry Page is now the default route */}
+        <Route path="/" element={<EntryPage />} />
+        {/* Login Page now has its own explicit route */}
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/landing" element={<UserLandingPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<AdminAndSuperAdminPage />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
       </Routes>
     </>
