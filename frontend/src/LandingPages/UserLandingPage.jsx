@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home,
@@ -16,10 +16,32 @@ import {
   PhoneCall,
 } from "lucide-react";
 
+function getInitials(name) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
+
 const UserLandingPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({});
+  const userId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetch(`http://localhost:5000/api/user/${userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("User not found");
+        return res.json();
+      })
+      .then((data) => setUserInfo(data))
+      .catch((err) => console.error("Failed to fetch user info", err));
+  }, [userId]);
 
   const menuItems = [
     { id: "home", icon: Home, label: "Dashboard", active: true },
@@ -101,7 +123,12 @@ const UserLandingPage = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  setActiveSection(item.id);
+                  if (item.id === "residents") {
+                    navigate("/records");
+                  }
+                }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-xl transition-all duration-200 group ${
                   isActive
                     ? "bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-lg"
@@ -142,13 +169,17 @@ const UserLandingPage = () => {
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer">
             <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">JKB</span>
+              <span className="text-white text-sm font-semibold">
+                {getInitials(userInfo.fullName || "User")}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                Jade Kevin Balocos
+                {userInfo.fullName || "Loading..."}
               </p>
-              <p className="text-xs text-gray-500 truncate">jade@example.com</p>
+              <p className="text-xs text-gray-500 truncate">
+                {userInfo.email || "Fetching email..."}
+              </p>
             </div>
           </div>
         </div>

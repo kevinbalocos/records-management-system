@@ -53,11 +53,12 @@ const LoginPage = () => {
     try {
       const res = await axios.post("http://localhost:5000/api/login", form);
 
-      const { role, status } = res.data;
+      const { role, status, user } = res.data; 
 
       localStorage.setItem("userRole", role);
       localStorage.setItem("userStatus", status);
       localStorage.setItem("userEmail", form.email);
+      localStorage.setItem("userId", user.id); 
 
       toast.success("Login successful!");
 
