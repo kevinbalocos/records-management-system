@@ -22,11 +22,11 @@ const RegisterPage = () => {
     email: "",
     password: "",
     phoneNumber: "",
-    role: "user", // Default role is user
+    role: "user", 
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState(""); // State for input focus styling
+  const [focusedField, setFocusedField] = useState(""); 
   const [validations, setValidations] = useState({
     firstName: false,
     lastName: false,
@@ -71,7 +71,7 @@ const RegisterPage = () => {
       !form.email ||
       !form.password ||
       !form.phoneNumber ||
-      !form.role // Check if role is selected
+      !form.role 
     ) {
       toast.error("All fields are required!");
       return;
@@ -105,7 +105,6 @@ const RegisterPage = () => {
     }
   };
 
-  // Helper function for input styling
   const inputClasses = (fieldName) => `
     w-full px-4 py-4 pl-12 bg-white/5 border rounded-xl
     transition-all duration-300 ease-out text-gray-800 placeholder-gray-400

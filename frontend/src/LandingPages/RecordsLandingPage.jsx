@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { io } from "socket.io-client";
 import {
   Home,
   Users,
@@ -17,7 +19,10 @@ import {
   Upload,
   Clock,
   CheckSquare,
+  CalendarDays,
 } from "lucide-react";
+
+const socket = io("http://localhost:5000");
 
 function getInitials(name) {
   return name
@@ -27,7 +32,6 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-// Toast Component
 const Toast = ({ message, type, onClose, isVisible }) => {
   const getToastStyles = () => {
     const baseStyles =
@@ -86,7 +90,6 @@ const Toast = ({ message, type, onClose, isVisible }) => {
   );
 };
 
-// Custom hook for toast notifications
 const useToast = () => {
   const [toast, setToast] = useState(null);
 
@@ -122,11 +125,96 @@ const RecordsLandingPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userInfo, setUserInfo] = useState({});
   const userId = localStorage.getItem("userId");
+  const [activities, setActivities] = useState([]);
+  const [stats, setStats] = useState([]);
+
+  const fetchStats = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      const res = await axios.get(
+        `http://localhost:5000/api/requests/stats/${userId}`
+      );
+
+      const data = res.data;
+
+      setStats([
+        {
+          title: "Total Requests",
+          value: data.total,
+          icon: FileText,
+          bgColor: "bg-blue-100",
+          textColor: "text-blue-600",
+        },
+        {
+          title: "Pending Requests",
+          value: data.pending,
+          icon: Clock,
+          bgColor: "bg-yellow-100",
+          textColor: "text-yellow-600",
+        },
+        {
+          title: "Completed Requests",
+          value: data.completed,
+          icon: CheckCircle,
+          bgColor: "bg-green-100",
+          textColor: "text-green-600",
+        },
+        {
+          title: "This Month",
+          value: data.thisMonth,
+          icon: CalendarDays,
+          bgColor: "bg-purple-100",
+          textColor: "text-purple-600",
+        },
+      ]);
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
+    }
+  };
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    fetchStats();
+
+    socket.on("newRequest", (data) => {
+      console.log("New request received:", data);
+      console.log("created_at:", data.created_at);
+      fetchStats();
+
+      if (data.user_id == userId) {
+        setActivities((prev) => [...prev, data]);
+      }
+    });
+
+    return () => {
+      socket.off("newRequest");
+    };
+  }, []);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    const fetchRequests = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/requests/user/${userId}`
+        );
+        setActivities(res.data);
+      } catch (error) {
+        console.error("Failed to fetch user requests:", error);
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:5000/api/user/${userId}`)
+    fetch(`http://localhost:5000/api/users/${userId}`)
       .then((res) => {
         if (!res.ok) throw new Error("User not found");
         return res.json();
@@ -201,42 +289,6 @@ const RecordsLandingPage = () => {
       navigate("/landing");
     }
   };
-
-  // Stats data for the dashboard
-  const stats = [
-    {
-      title: "Total Requests",
-      value: "234",
-      icon: FileText,
-      color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-50",
-      textColor: "text-blue-600",
-    },
-    {
-      title: "Pending",
-      value: "12",
-      icon: Clock,
-      color: "from-yellow-500 to-yellow-600",
-      bgColor: "bg-yellow-50",
-      textColor: "text-yellow-600",
-    },
-    {
-      title: "Completed",
-      value: "198",
-      icon: CheckSquare,
-      color: "from-green-500 to-green-600",
-      bgColor: "bg-green-50",
-      textColor: "text-green-600",
-    },
-    {
-      title: "This Month",
-      value: "45",
-      icon: BarChart3,
-      color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-50",
-      textColor: "text-purple-600",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex">
@@ -329,12 +381,12 @@ const RecordsLandingPage = () => {
           <div className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer">
             <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-semibold">
-                {getInitials(userInfo.fullName || "User")}
+                {getInitials(userInfo.first_name || "User")}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {userInfo.fullName || "Loading..."}
+                {userInfo.first_name || "Loading..."}
               </p>
               <p className="text-xs text-gray-500 truncate">
                 {userInfo.email || "Fetching email..."}
@@ -510,39 +562,42 @@ const RecordsLandingPage = () => {
               Recent Activity
             </h3>
             <div className="space-y-3">
-              {[
-                { type: "Medical", status: "Completed", time: "2 hours ago" },
-                {
-                  type: "Guarantee Letter",
-                  status: "Pending",
-                  time: "1 day ago",
-                },
-                { type: "MAIP", status: "Processing", time: "3 days ago" },
-              ].map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
+              {activities.length === 0 ? (
+                <p className="text-gray-500">No recent activity yet.</p>
+              ) : (
+                activities
+                  .slice()
+                  .reverse()
+                  .map((activity, index) => (
                     <div
-                      className={`w-3 h-3 rounded-full ${
-                        activity.status === "Completed"
-                          ? "bg-green-500"
-                          : activity.status === "Pending"
-                          ? "bg-yellow-500"
-                          : "bg-blue-500"
-                      }`}
-                    ></div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {activity.type}
-                      </p>
-                      <p className="text-sm text-gray-600">{activity.status}</p>
+                      key={index}
+                      className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`w-3 h-3 rounded-full ${
+                            activity.status === "Completed"
+                              ? "bg-green-500"
+                              : activity.status === "Pending"
+                              ? "bg-yellow-500"
+                              : "bg-blue-500"
+                          }`}
+                        ></div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {activity.type}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {activity.status}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {new Date(activity.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                  </div>
-                  <span className="text-sm text-gray-500">{activity.time}</span>
-                </div>
-              ))}
+                  ))
+              )}
             </div>
           </div>
         </main>

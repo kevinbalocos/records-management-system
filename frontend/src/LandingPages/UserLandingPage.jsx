@@ -34,7 +34,7 @@ const UserLandingPage = () => {
   useEffect(() => {
     if (!userId) return;
 
-    fetch(`http://localhost:5000/api/user/${userId}`)
+    fetch(`http://localhost:5000/api/users/${userId}`)
       .then((res) => {
         if (!res.ok) throw new Error("User not found");
         return res.json();
@@ -170,12 +170,12 @@ const UserLandingPage = () => {
           <div className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer">
             <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-semibold">
-                {getInitials(userInfo.fullName || "User")}
+                {getInitials(userInfo.first_name || "User")}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {userInfo.fullName || "Loading..."}
+                {userInfo.first_name || "Loading..."}
               </p>
               <p className="text-xs text-gray-500 truncate">
                 {userInfo.email || "Fetching email..."}
