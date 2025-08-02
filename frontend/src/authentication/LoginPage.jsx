@@ -52,15 +52,14 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const res = await axios.post("http://localhost:5000/api/login", form);
+      const { user } = res.data;
 
-      const { role, status, user } = res.data; 
+      const { role, status } = user;
 
       localStorage.setItem("userRole", role);
       localStorage.setItem("userStatus", status);
-      localStorage.setItem("userEmail", form.email);
-      localStorage.setItem("userId", user.id); 
-
-      toast.success("Login successful!");
+      localStorage.setItem("userEmail", user.email);
+      localStorage.setItem("userId", user.id);
 
       if (role === "superadmin") {
         toast.success("Login successful!");
@@ -273,7 +272,7 @@ const LoginPage = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from {
             opacity: 0;
