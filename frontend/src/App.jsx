@@ -3,7 +3,6 @@ import LoginPage from "./authentication/LoginPage";
 import RegisterPage from "./authentication/RegisterPage";
 import UserLandingPage from "./UserLandingPage/UserLandingPage";
 import AdminAndSuperAdminLandingPage from "./AdminLandingPage/AdminLandingPage";
-import IndigencyRequest from "./UserLandingPage/IndigencyRequest";
 import IndigencyAdmin from "./AdminLandingPage/IndigencyAdmin";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -22,7 +21,6 @@ const App = () => {
         <Route path="/admin" element={<AdminAndSuperAdminLandingPage />} />
 
         <Route path="/verify" element={<VerifyEmailPage />} />
-        <Route path="/indigency-request" element={<IndigencyRequest />} />
         <Route path="/admin/indigency" element={<IndigencyAdmin />} />
       </Routes>
     </>

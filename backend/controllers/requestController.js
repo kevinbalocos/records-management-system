@@ -1,10 +1,14 @@
-const db = require("../db");
+const express = require("express");
+const router = express.Router();
+const upload = require("../middleware/uploadMiddleware"); // Assuming this middleware is configured
+const db = require("../db"); // Assuming the database connection is configured
 
-exports.createRequest = (req, res) => {
+// Controller to create a new request
+const createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
   const filePath = req.file ? req.file.filename : null;
 
-  if (!type || !details || !user_id || !filePath) {
+  if (!type || !details || !user_id) {
     return res.status(400).json({ message: "Missing required fields." });
   }
 
@@ -19,7 +23,7 @@ exports.createRequest = (req, res) => {
       return res.status(500).json({ message: "Server error while saving request" });
     }
 
-    const io = req.app.get("io"); 
+    const io = req.app.get("io");
     io.emit("newRequest", {
       id: result.insertId,
       user_id,
@@ -34,7 +38,8 @@ exports.createRequest = (req, res) => {
   });
 };
 
-exports.getUserRequests = (req, res) => {
+// Controller to get a user's requests
+const getUserRequests = (req, res) => {
   const { id } = req.params;
   db.query(
     "SELECT id, type, details, file_path, status, created_at FROM requests WHERE user_id = ?",
@@ -46,14 +51,16 @@ exports.getUserRequests = (req, res) => {
   );
 };
 
-exports.getAllRequests = (req, res) => {
+// Controller to get all requests
+const getAllRequests = (req, res) => {
   db.query("SELECT * FROM requests", (err, results) => {
     if (err) return res.status(500).json({ message: "Error fetching all requests" });
     res.json(results);
   });
 };
 
-exports.updateRequestStatus = (req, res) => {
+// Controller to update a request status
+const updateRequestStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -67,25 +74,30 @@ exports.updateRequestStatus = (req, res) => {
   );
 };
 
-exports.getRequestStats = (req, res) => {
-  const userId = req.params.id;
+// Controller to get global request statistics for the admin dashboard
+const getAllRequestsStats = (req, res) => {
+    const statsQuery = `
+      SELECT
+        (SELECT COUNT(*) FROM requests) AS total,
+        (SELECT COUNT(*) FROM requests WHERE status = 'pending') AS pending,
+        (SELECT COUNT(*) FROM requests WHERE status = 'completed') AS completed,
+        (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS thisMonth
+    `;
 
-  if (!userId) {
-    return res.status(400).json({ message: "User ID is required" });
-  }
-
-  const statsQuery = `
-    SELECT
-      (SELECT COUNT(*) FROM requests WHERE user_id = ?) AS total,
-      (SELECT COUNT(*) FROM requests WHERE status = 'pending' AND user_id = ?) AS pending,
-      (SELECT COUNT(*) FROM requests WHERE status = 'completed' AND user_id = ?) AS completed,
-      (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE()) AND user_id = ?) AS thisMonth
-  `;
-
-  db.query(statsQuery, [userId, userId, userId, userId], (err, results) => {
-    if (err) return res.status(500).json({ message: "Error fetching stats" });
-    res.json(results[0]);
-  });
+    db.query(statsQuery, (err, results) => {
+      if (err) {
+        console.error("Error fetching stats:", err);
+        return res.status(500).json({ message: "Error fetching stats" });
+      }
+      res.json(results[0]);
+    });
 };
 
+// Define the routes
+router.post("/", upload.single("file"), createRequest);
+router.get("/", getAllRequests); // Route for fetching all requests
+router.get("/user/:id", getUserRequests);
+router.post("/:id/status", updateRequestStatus);
+router.get("/stats", getAllRequestsStats); // New route for fetching global stats
 
+module.exports = router;

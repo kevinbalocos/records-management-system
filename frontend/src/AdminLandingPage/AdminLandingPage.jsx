@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"; // Import useEffect
 import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
-import AdminDashboard from "./AdminRecords";
+import AdminDashboard from "./AdminRecordsRequest";
 
 import {
   LayoutDashboard,
