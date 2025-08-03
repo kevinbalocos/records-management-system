@@ -65,7 +65,7 @@ const ConfirmationDialog = ({
   );
 };
 
-const AdminAndSuperAdminPage = () => {
+const AdminAndSuperAdminUserApproval = () => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -781,4 +781,4 @@ const AdminAndSuperAdminPage = () => {
   );
 };
 
-export default AdminAndSuperAdminPage;
+export default AdminAndSuperAdminUserApproval;

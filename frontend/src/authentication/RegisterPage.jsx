@@ -22,11 +22,11 @@ const RegisterPage = () => {
     email: "",
     password: "",
     phoneNumber: "",
-    role: "user", 
+    role: "user",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState(""); 
+  const [focusedField, setFocusedField] = useState("");
   const [validations, setValidations] = useState({
     firstName: false,
     lastName: false,
@@ -71,7 +71,7 @@ const RegisterPage = () => {
       !form.email ||
       !form.password ||
       !form.phoneNumber ||
-      !form.role 
+      !form.role
     ) {
       toast.error("All fields are required!");
       return;
@@ -157,61 +157,63 @@ const RegisterPage = () => {
           <form onSubmit={handleRegister} className="space-y-6">
             <div className="bg-white/70 backdrop-blur-md rounded-3xl p-8 border border-gray-200 shadow-xl shadow-gray-300/50">
               {/* First Name Field */}
-              <div className="relative mb-6">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                  <User
-                    className={`w-5 h-5 transition-all duration-300 ${
-                      focusedField === "firstName"
-                        ? "text-teal-500"
-                        : "text-gray-400"
-                    }`}
-                  />
-                </div>
-                <input
-                  type="text"
-                  name="firstName"
-                  placeholder="First Name"
-                  className={inputClasses("firstName")}
-                  value={form.firstName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField("firstName")}
-                  onBlur={() => setFocusedField("")}
-                  required
-                />
-                {validations.firstName && (
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <CheckCircle className="w-5 h-5 text-emerald-500 animate-scale-in" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="relative mb-6">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
+                    <User
+                      className={`w-5 h-5 transition-all duration-300 ${
+                        focusedField === "firstName"
+                          ? "text-teal-500"
+                          : "text-gray-400"
+                      }`}
+                    />
                   </div>
-                )}
-              </div>
+                  <input
+                    type="text"
+                    name="firstName"
+                    placeholder="First Name"
+                    className={inputClasses("firstName")}
+                    value={form.firstName}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField("firstName")}
+                    onBlur={() => setFocusedField("")}
+                    required
+                  />
+                  {validations.firstName && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 animate-scale-in" />
+                    </div>
+                  )}
+                </div>
 
-              {/* Last Name Field */}
-              <div className="relative mb-6">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
-                  <User
-                    className={`w-5 h-5 transition-all duration-300 ${
-                      focusedField === "lastName"
-                        ? "text-teal-500"
-                        : "text-gray-400"
-                    }`}
-                  />
-                </div>
-                <input
-                  type="text"
-                  name="lastName"
-                  placeholder="Last Name"
-                  className={inputClasses("lastName")}
-                  value={form.lastName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField("lastName")}
-                  onBlur={() => setFocusedField("")}
-                  required
-                />
-                {validations.lastName && (
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <CheckCircle className="w-5 h-5 text-emerald-500 animate-scale-in" />
+                {/* Last Name Field */}
+                <div className="relative mb-6">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
+                    <User
+                      className={`w-5 h-5 transition-all duration-300 ${
+                        focusedField === "lastName"
+                          ? "text-teal-500"
+                          : "text-gray-400"
+                      }`}
+                    />
                   </div>
-                )}
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder="Last Name"
+                    className={inputClasses("lastName")}
+                    value={form.lastName}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField("lastName")}
+                    onBlur={() => setFocusedField("")}
+                    required
+                  />
+                  {validations.lastName && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 animate-scale-in" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Email Field */}
