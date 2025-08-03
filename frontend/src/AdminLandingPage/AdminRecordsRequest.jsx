@@ -17,11 +17,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 
-// Set up the socket.io client to connect to the backend
-// Assuming the server is running on http://localhost:5000
 const socket = io("http://localhost:5000");
 
-// A reusable Toast component for user notifications
 const Toast = ({ message, type, onClose, isVisible }) => {
   const getToastStyles = () => {
     const baseStyles =
@@ -80,7 +77,6 @@ const Toast = ({ message, type, onClose, isVisible }) => {
   );
 };
 
-// Custom hook to manage toast notifications
 const useToast = () => {
   const [toast, setToast] = useState(null);
 
@@ -104,7 +100,6 @@ const useToast = () => {
   return { toast, showToast, hideToast };
 };
 
-// Tailwind CSS classes for different request statuses
 const statusClasses = {
   pending: "text-yellow-600 bg-yellow-100 border-yellow-200",
   completed: "text-green-600 bg-green-100 border-green-200",
@@ -122,10 +117,8 @@ const AdminDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetches all requests with associated resident names from the backend
   const fetchRequests = async () => {
     try {
-      // Corrected URL: changed from "/api/requests/all" to "/api/requests"
       const response = await axios.get("http://localhost:5000/api/requests");
       setRequests(response.data);
     } catch (error) {
@@ -134,7 +127,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetches the logged-in admin's information
   const fetchAdminInfo = async () => {
     if (!adminId) return;
     try {
@@ -147,10 +139,8 @@ const AdminDashboard = () => {
     }
   };
 
-  // Fetches aggregated statistics for the dashboard
   const fetchStats = async () => {
     try {
-      // Corrected URL: changed from "/api/requests/all/stats" to a new, correct endpoint
       const response = await axios.get(
         "http://localhost:5000/api/requests/stats"
       );
@@ -165,9 +155,7 @@ const AdminDashboard = () => {
     fetchAdminInfo();
     fetchStats();
 
-    // Listen for new requests via WebSocket and update state
     socket.on("newRequest", (newRequest) => {
-      // Fetch the resident's name for the new request and update the list
       axios
         .get(`http://localhost:5000/api/users/${newRequest.user_id}`)
         .then((userRes) => {
@@ -179,7 +167,7 @@ const AdminDashboard = () => {
             `A new request from ${userRes.data.first_name} has been submitted!`,
             "info"
           );
-          fetchStats(); // Update stats as well
+          fetchStats(); 
         })
         .catch((err) => {
           console.error("Failed to fetch new request user info:", err);
@@ -191,46 +179,40 @@ const AdminDashboard = () => {
         });
     });
 
-    // Clean up the socket listener on unmount
     return () => {
       socket.off("newRequest");
     };
   }, [adminId, showToast]);
 
-  // Updates the status of a request (completed or rejected)
   const handleUpdateStatus = async (id, status) => {
     try {
       await axios.post(`http://localhost:5000/api/requests/${id}/status`, {
         status,
       });
       showToast("Request status updated successfully!", "success");
-      fetchRequests(); // Refresh the requests list
-      fetchStats(); // Refresh the stats
+      fetchRequests(); 
+      fetchStats(); 
     } catch (error) {
       console.error("Failed to update status:", error);
       showToast("Failed to update request status.", "error");
     }
   };
 
-  // Handles admin logout
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
 
-  // Opens the modal to view request details
   const openModal = (request) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
   };
 
-  // Closes the modal
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedRequest(null);
   };
 
-  // Returns the appropriate icon for a given status
   const getStatusIcon = (status) => {
     switch (status) {
       case "pending":
@@ -329,7 +311,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <header className="bg-white shadow-sm p-6 flex items-center justify-between z-10 sticky top-0">
         <h1 className="text-3xl font-bold text-gray-900">
-          <span className="text-teal-600">Admin</span> Dashboard
+          <span className="text-teal-600">Resident</span> Records Admin
         </h1>
         <div className="flex items-center space-x-4">
           <span className="text-gray-700 font-medium hidden sm:block">

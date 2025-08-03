@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/uploadMiddleware");
+
 const {
   createRequest,
   getUserRequests,
@@ -10,9 +11,9 @@ const {
 } = require("../controllers/requestController");
 
 router.post("/", upload.single("file"), createRequest);
-router.get("/user/:id", getUserRequests);
 router.get("/", getAllRequests);
+router.get("/user/:id", getUserRequests);
 router.post("/:id/status", updateRequestStatus);
-router.get("/stats/:id", getRequestStats);
+router.get("/stats", getRequestStats);
 
 module.exports = router;

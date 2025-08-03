@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"; // Import useEffect
 import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
 import AdminDashboard from "./AdminRecordsRequest";
+import IndigencyAdmin from "./IndigencyAdmin";
 
 import {
   LayoutDashboard,
@@ -29,6 +30,7 @@ export default function AdminPage() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "approve", label: "User Approval", icon: CheckCircle },
     { id: "records-request", label: "Records Request", icon: ClipboardList },
+    { id: "indigency", label: "Indigency Request", icon: ClipboardList },
   ];
 
   return (
@@ -227,6 +229,11 @@ export default function AdminPage() {
           {activeItem === "records-request" && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
               <AdminDashboard />
+            </div>
+          )}
+          {activeItem === "indigency" && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+              <IndigencyAdmin />
             </div>
           )}
         </main>

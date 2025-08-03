@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../middleware/uploadMiddleware"); // Assuming this middleware is configured
-const db = require("../db"); // Assuming the database connection is configured
-
-// Controller to create a new request
-const createRequest = (req, res) => {
+const upload = require("../middleware/uploadMiddleware"); 
+const db = require("../db"); 
+exports.createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
   const filePath = req.file ? req.file.filename : null;
 
@@ -38,8 +36,7 @@ const createRequest = (req, res) => {
   });
 };
 
-// Controller to get a user's requests
-const getUserRequests = (req, res) => {
+exports.getUserRequests = (req, res) => {
   const { id } = req.params;
   db.query(
     "SELECT id, type, details, file_path, status, created_at FROM requests WHERE user_id = ?",
@@ -51,16 +48,14 @@ const getUserRequests = (req, res) => {
   );
 };
 
-// Controller to get all requests
-const getAllRequests = (req, res) => {
+exports.getAllRequests = (req, res) => {
   db.query("SELECT * FROM requests", (err, results) => {
     if (err) return res.status(500).json({ message: "Error fetching all requests" });
     res.json(results);
   });
 };
 
-// Controller to update a request status
-const updateRequestStatus = (req, res) => {
+exports.updateRequestStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -74,30 +69,20 @@ const updateRequestStatus = (req, res) => {
   );
 };
 
-// Controller to get global request statistics for the admin dashboard
-const getAllRequestsStats = (req, res) => {
-    const statsQuery = `
-      SELECT
-        (SELECT COUNT(*) FROM requests) AS total,
-        (SELECT COUNT(*) FROM requests WHERE status = 'pending') AS pending,
-        (SELECT COUNT(*) FROM requests WHERE status = 'completed') AS completed,
-        (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS thisMonth
-    `;
+exports.getRequestStats = (req, res) => {
+  const statsQuery = `
+    SELECT
+      (SELECT COUNT(*) FROM requests) AS total,
+      (SELECT COUNT(*) FROM requests WHERE status = 'pending') AS pending,
+      (SELECT COUNT(*) FROM requests WHERE status = 'completed') AS completed,
+      (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS thisMonth
+  `;
 
-    db.query(statsQuery, (err, results) => {
-      if (err) {
-        console.error("Error fetching stats:", err);
-        return res.status(500).json({ message: "Error fetching stats" });
-      }
-      res.json(results[0]);
-    });
+  db.query(statsQuery, (err, results) => {
+    if (err) {
+      console.error("Error fetching stats:", err);
+      return res.status(500).json({ message: "Error fetching stats" });
+    }
+    res.json(results[0]);
+  });
 };
-
-// Define the routes
-router.post("/", upload.single("file"), createRequest);
-router.get("/", getAllRequests); // Route for fetching all requests
-router.get("/user/:id", getUserRequests);
-router.post("/:id/status", updateRequestStatus);
-router.get("/stats", getAllRequestsStats); // New route for fetching global stats
-
-module.exports = router;
