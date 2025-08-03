@@ -11,6 +11,7 @@ const { createDefaultSuperadmin } = require("./utils/createSuperadmin");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const requestRoutes = require("./routes/requestRoutes");
+const indigencyRoutes = require("./routes/indigencyRoutes");
 
 const app = express();
 const server = http.createServer(app); 
@@ -41,6 +42,7 @@ createDefaultSuperadmin();
 app.use("/api", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/indigency", indigencyRoutes);
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
