@@ -4,6 +4,7 @@ import RegisterPage from "./authentication/RegisterPage";
 import UserLandingPage from "./UserLandingPage/UserLandingPage";
 import AdminAndSuperAdminLandingPage from "./AdminLandingPage/AdminLandingPage";
 import IndigencyAdmin from "./AdminLandingPage/IndigencyAdmin";
+import UserCorrectionForm from "./UserLandingPage/UserCorrectionForm";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import VerifyEmailPage from "./authentication/VerifyEmailPage";
@@ -19,7 +20,7 @@ const App = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/landing" element={<UserLandingPage />} />
         <Route path="/admin" element={<AdminAndSuperAdminLandingPage />} />
-
+        <Route path="/corrections" element={<UserCorrectionForm />} />
         <Route path="/verify" element={<VerifyEmailPage />} />
         <Route path="/admin/indigency" element={<IndigencyAdmin />} />
       </Routes>

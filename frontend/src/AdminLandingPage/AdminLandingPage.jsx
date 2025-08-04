@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"; // Import useEffect
 import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
 import AdminDashboard from "./AdminRecordsRequest";
 import IndigencyAdmin from "./IndigencyAdmin";
+import AdminCorrectionList from "./AdminCorrectionList";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -33,6 +34,7 @@ export default function AdminPage() {
     { id: "approve", label: "User Approval", icon: CheckCircle },
     { id: "records-request", label: "Records Request", icon: ClipboardList },
     { id: "indigency", label: "Indigency Request", icon: ClipboardList },
+    { id: "correction", label: "Correction Request", icon: ClipboardList },
   ];
 
   const handleLogout = () => {
@@ -248,6 +250,11 @@ export default function AdminPage() {
           {activeItem === "indigency" && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
               <IndigencyAdmin />
+            </div>
+          )}
+          {activeItem === "correction" && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+              <AdminCorrectionList />
             </div>
           )}
         </main>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import RecordsLandingPage from "./UserRecordsRequest";
 import IndigencyRequest from "../UserLandingPage/UserIndigencyRequest";
+import UserCorrectionForm from "../UserLandingPage/UserCorrectionForm";
+import UserCorrectionHistory from "./UserCorrectionHistory";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -12,6 +14,7 @@ import {
   CheckCircle,
   ClipboardList,
   X,
+  Clock,
 } from "lucide-react";
 
 export default function UserPage() {
@@ -35,6 +38,8 @@ export default function UserPage() {
       label: "Indigency Request",
       icon: ClipboardList,
     },
+    { id: "corrections", label: "Correction Request", icon: ClipboardList },
+    { id: "correction-history", label: "Correction History", icon: Clock },
   ];
 
   const handleLogout = () => {
@@ -243,6 +248,16 @@ export default function UserPage() {
           {activeItem === "indigency-request" && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
               <IndigencyRequest />
+            </div>
+          )}
+          {activeItem === "corrections" && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+              <UserCorrectionForm />
+            </div>
+          )}
+          {activeItem === "correction-history" && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+              <UserCorrectionHistory />
             </div>
           )}
         </main>
