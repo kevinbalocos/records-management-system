@@ -440,9 +440,9 @@ const RecordsLandingPage = () => {
                       <div className="flex items-center space-x-3">
                         <div
                           className={`w-3 h-3 rounded-full ${
-                            activity.status === "Completed"
+                            activity.status === "completed"
                               ? "bg-green-500"
-                              : activity.status === "Pending"
+                              : activity.status === "pending"
                               ? "bg-yellow-500"
                               : "bg-blue-500"
                           }`}
@@ -451,9 +451,21 @@ const RecordsLandingPage = () => {
                           <p className="font-medium text-gray-900">
                             {activity.type}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 capitalize">
                             {activity.status}
                           </p>
+
+                          {activity.status === "completed" &&
+                            activity.admin_file_path && (
+                              <a
+                                href={`http://localhost:5000/uploads/${activity.admin_file_path}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline"
+                              >
+                                Download Final Document
+                              </a>
+                            )}
                         </div>
                       </div>
                       <span className="text-sm text-gray-500">

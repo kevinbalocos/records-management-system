@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"; // Import useEffect
 import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
 import AdminDashboard from "./AdminRecordsRequest";
 import IndigencyAdmin from "./IndigencyAdmin";
+import { useNavigate } from "react-router-dom";
 
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ export default function AdminPage() {
     return savedItem || "dashboard";
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.setItem("adminActiveMenuItem", activeItem);
@@ -32,6 +34,12 @@ export default function AdminPage() {
     { id: "records-request", label: "Records Request", icon: ClipboardList },
     { id: "indigency", label: "Indigency Request", icon: ClipboardList },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userInfo");
+    navigate("/login");
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden lg:flex-row">
@@ -114,7 +122,10 @@ export default function AdminPage() {
             )}
           </div>
           {!isCollapsed && (
-            <button className="w-full mt-4 flex items-center justify-center space-x-2 px-3 py-2.5 text-base text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200 group">
+            <button
+              onClick={handleLogout}
+              className="w-full mt-4 flex items-center justify-center space-x-2 px-3 py-2.5 text-base text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200 group"
+            >
               <LogOut className="w-5 h-5 group-hover:text-gray-800" />
               <span className="font-medium group-hover:text-gray-800">
                 Sign Out
@@ -203,7 +214,10 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
-                <button className="w-full mt-4 flex items-center justify-center space-x-2 px-3 py-2.5 text-base text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200 group">
+                <button
+                  onClick={handleLogout}
+                  className="w-full mt-4 flex items-center justify-center space-x-2 px-3 py-2.5 text-base text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200 group"
+                >
                   <LogOut className="w-5 h-5 group-hover:text-gray-800" />
                   <span className="font-medium group-hover:text-gray-800">
                     Sign Out
