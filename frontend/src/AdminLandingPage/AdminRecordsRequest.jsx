@@ -167,7 +167,7 @@ const AdminDashboard = () => {
             `A new request from ${userRes.data.first_name} has been submitted!`,
             "info"
           );
-          fetchStats(); 
+          fetchStats();
         })
         .catch((err) => {
           console.error("Failed to fetch new request user info:", err);
@@ -190,8 +190,8 @@ const AdminDashboard = () => {
         status,
       });
       showToast("Request status updated successfully!", "success");
-      fetchRequests(); 
-      fetchStats(); 
+      fetchRequests();
+      fetchStats();
     } catch (error) {
       console.error("Failed to update status:", error);
       showToast("Failed to update request status.", "error");
@@ -303,6 +303,48 @@ const AdminDashboard = () => {
                   </a>
                 </div>
               )}
+              {selectedRequest.status === "approved" &&
+                !selectedRequest.admin_file_path && (
+                  <div className="mt-4">
+                    <p className="font-semibold text-gray-700 mb-2">
+                      Upload Final Document:
+                    </p>
+                    <input
+                      type="file"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append("file", file);
+
+                        try {
+                          // Upload the file
+                          await axios.post(
+                            `http://localhost:5000/api/requests/${selectedRequest.id}/upload`,
+                            formData
+                          );
+
+                          // Update the status to completed
+                          await handleUpdateStatus(
+                            selectedRequest.id,
+                            "completed"
+                          );
+
+                          closeModal(); // Optional: close modal after success
+                          showToast(
+                            "Document uploaded and request marked as completed.",
+                            "success"
+                          );
+                        } catch (error) {
+                          console.error("Upload error:", error);
+                          showToast("Failed to upload document.", "error");
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg p-2"
+                    />
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -451,7 +493,7 @@ const AdminDashboard = () => {
                         <>
                           <button
                             onClick={() =>
-                              handleUpdateStatus(request.id, "completed")
+                              handleUpdateStatus(request.id, "approved")
                             }
                             className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors"
                             title="Mark as Completed"

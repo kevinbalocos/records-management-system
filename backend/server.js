@@ -43,6 +43,7 @@ app.use("/api", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/indigency", indigencyRoutes);
+app.use("/uploads", express.static("uploads"));
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);

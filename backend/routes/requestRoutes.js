@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/uploadMiddleware");
+const { uploadAdminFile } = require("../controllers/requestController");
+
 
 const {
   createRequest,
@@ -15,5 +17,6 @@ router.get("/", getAllRequests);
 router.get("/user/:id", getUserRequests);
 router.post("/:id/status", updateRequestStatus);
 router.get("/stats", getRequestStats);
+router.post("/:id/upload", upload.single("file"), uploadAdminFile);
 
 module.exports = router;
