@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../middleware/uploadMiddleware");
+const upload = require("../middleware/uploadRecordsRequestMiddleware");
 const db = require("../db");
+
 exports.createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
-  const filePath = req.file ? req.file.filename : null;
+  // --- START: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
+  const filePath = req.file ? `records_request/${req.file.filename}` : null;
+  // --- END: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
 
   if (!type || !details || !user_id) {
     return res.status(400).json({ message: "Missing required fields." });
@@ -96,7 +99,9 @@ exports.updateRequestStatus = (req, res) => {
 
 exports.uploadAdminFile = (req, res) => {
   const { id } = req.params;
-  const filePath = req.file ? req.file.filename : null;
+  // --- START: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
+  const filePath = req.file ? `records_request/${req.file.filename}` : null;
+  // --- END: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
 
   if (!filePath) {
     return res.status(400).json({ message: "No file uploaded" });

@@ -13,62 +13,80 @@ import {
   CalendarDays,
   List,
   FolderOpen,
+  Search,
+  Filter,
+  Download,
+  Bell,
+  Settings,
+  TrendingUp,
+  Users,
+  FileCheck,
+  Eye,
+  RefreshCw,
+  ChevronDown,
+  Plus,
+  ArrowUpRight,
+  Activity,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
 
+// Socket.io connection
 const socket = io("http://localhost:5000");
 
+// Re-usable Toast component and hook
 const Toast = ({ message, type, onClose, isVisible }) => {
   const getToastStyles = () => {
     const baseStyles =
-      "flex items-center p-4 rounded-lg shadow-lg border-l-4 min-w-80 max-w-md";
+      "flex items-center p-4 rounded-xl shadow-2xl backdrop-blur-md border min-w-80 max-w-md";
 
     switch (type) {
       case "success":
-        return `${baseStyles} bg-green-50 border-green-500 text-green-800`;
+        return `${baseStyles} bg-emerald-50/90 border-emerald-200 text-emerald-800`;
       case "error":
-        return `${baseStyles} bg-red-50 border-red-500 text-red-800`;
+        return `${baseStyles} bg-red-50/90 border-red-200 text-red-800`;
       case "warning":
-        return `${baseStyles} bg-yellow-50 border-yellow-500 text-yellow-800`;
+        return `${baseStyles} bg-amber-50/90 border-amber-200 text-amber-800`;
+      case "info":
+        return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
       default:
-        return `${baseStyles} bg-blue-50 border-blue-500 text-blue-800`;
+        return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
     }
   };
 
   const getIcon = () => {
+    const iconClass = "w-5 h-5 mr-3 flex-shrink-0";
     switch (type) {
       case "success":
-        return (
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-        );
+        return <CheckCircle className={`${iconClass} text-emerald-500`} />;
       case "error":
-        return <XCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />;
+        return <XCircle className={`${iconClass} text-red-500`} />;
       case "warning":
-        return (
-          <AlertCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-        );
+        return <AlertCircle className={`${iconClass} text-amber-500`} />;
+      case "info":
+        return <Bell className={`${iconClass} text-blue-500`} />;
       default:
-        return (
-          <AlertCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-        );
+        return <AlertCircle className={`${iconClass} text-blue-500`} />;
     }
   };
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ease-in-out ${
-        isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+      className={`fixed top-6 right-6 z-50 transform transition-all duration-500 ease-out ${
+        isVisible
+          ? "translate-x-0 opacity-100 scale-100"
+          : "translate-x-full opacity-0 scale-95"
       }`}
     >
       <div className={getToastStyles()}>
         {getIcon()}
         <div className="flex-1">
-          <p className="font-medium">{message}</p>
+          <p className="font-semibold text-sm">{message}</p>
         </div>
         <button
           onClick={onClose}
-          className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="ml-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/20"
         >
           <XCircle className="w-4 h-4" />
         </button>
@@ -100,22 +118,330 @@ const useToast = () => {
   return { toast, showToast, hideToast };
 };
 
-const statusClasses = {
-  pending: "text-yellow-600 bg-yellow-100 border-yellow-200",
-  completed: "text-green-600 bg-green-100 border-green-200",
-  rejected: "text-red-600 bg-red-100 border-red-200",
+const StatusBadge = ({ status }) => {
+  const getStatusConfig = () => {
+    switch (status) {
+      case "pending":
+        return {
+          icon: <Clock className="w-3.5 h-3.5" />,
+          className:
+            "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-200",
+          pulse: true,
+        };
+      case "completed":
+        return {
+          icon: <CheckCircle className="w-3.5 h-3.5" />,
+          className:
+            "bg-gradient-to-r from-blue-100 to-teal-100 text-blue-700 border-blue-200",
+        };
+
+      case "rejected":
+        return {
+          icon: <XCircle className="w-3.5 h-3.5" />,
+          className:
+            "bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-200",
+        };
+      default:
+        return {
+          icon: <AlertCircle className="w-3.5 h-3.5" />,
+          className:
+            "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border-gray-200",
+        };
+    }
+  };
+
+  const config = getStatusConfig();
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border backdrop-blur-sm ${
+        config.className
+      } ${config.pulse ? "animate-pulse" : ""}`}
+    >
+      {config.icon}
+      <span className="ml-1.5 capitalize">{status}</span>
+    </span>
+  );
 };
 
-// Main Admin Dashboard component
-const AdminDashboard = () => {
+const RequestCard = ({ request, onViewDetails, onUpdateStatus }) => {
+  const formatDate = (dateString) => {
+    return moment(dateString).format("MMM D, hh:mm A");
+  };
+
+  return (
+    <div className="group bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-gray-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md">
+            <User className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
+              {request.resident_name || "N/A"}
+            </h3>
+            <p className="text-sm text-gray-500">{request.type}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <StatusBadge status={request.status} />
+          <div className="relative">
+            <button
+              onClick={() => onViewDetails(request)}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all duration-200"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-sm text-gray-600 line-clamp-2">{request.details}</p>
+
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <div className="flex items-center text-xs text-gray-500 space-x-4">
+            <span className="flex items-center">
+              <CalendarDays className="w-3.5 h-3.5 mr-1" />
+              {formatDate(request.created_at)}
+            </span>
+            {request.file_path && (
+              <span className="flex items-center text-teal-600">
+                <FileText className="w-3.5 h-3.5 mr-1" />
+                Attachment
+              </span>
+            )}
+          </div>
+
+          {request.status === "pending" && (
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => onUpdateStatus(request.id, "completed")}
+                className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                title="Approve"
+              >
+                <CheckCircle className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onUpdateStatus(request.id, "rejected")}
+                className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                title="Reject"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
+  if (!isOpen || !request) return null;
+
+  const formatDate = (dateString) => {
+    return moment(dateString).format("dddd, MMMM D, YYYY, hh:mm A");
+  };
+
+  const handleViewDocument = (filePath) => {
+    if (filePath) {
+      // Ensure the path starts with 'uploads/' if it's just a filename
+      const cleanedPath = filePath.startsWith("uploads/")
+        ? filePath
+        : `uploads/${filePath}`;
+      const fullUrl = `http://localhost:5000/${cleanedPath}`;
+      window.open(fullUrl, "_blank"); // Open the full URL in a new tab
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        ></div>
+
+        <div className="relative w-full max-w-2xl transform rounded-2xl bg-white shadow-2xl transition-all">
+          <div className="px-8 py-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Request Details
+                  </h2>
+                  <p className="text-sm text-gray-500">ID: #{request.id}</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          <div className="px-8 py-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Resident
+                  </label>
+                  <p className="mt-1 text-lg font-medium text-gray-900">
+                    {request.resident_name || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Request Type
+                  </label>
+                  <p className="mt-1 text-lg font-medium text-gray-900">
+                    {request.type}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Status
+                  </label>
+                  <div className="mt-2">
+                    <StatusBadge status={request.status} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Submitted
+                  </label>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {formatDate(request.created_at)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Details
+              </label>
+              <div className="mt-2 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-gray-800 leading-relaxed">
+                  {request.details}
+                </p>
+              </div>
+            </div>
+
+            {request.file_path && (
+              <div>
+                <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Supporting Document
+                </label>
+                <div className="mt-2">
+                  <button
+                    onClick={() => handleViewDocument(request.file_path)}
+                    className="flex w-full items-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition-all cursor-pointer text-left"
+                  >
+                    <FolderOpen className="w-6 h-6 text-teal-500 mr-3" />
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">View Document</p>
+                      <p className="text-sm text-gray-500">
+                        Click to open attached file
+                      </p>
+                    </div>
+                    <Download className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {request.admin_file_path && (
+              <div>
+                <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Final Document
+                </label>
+                <div className="mt-2">
+                  <button
+                    onClick={() => handleViewDocument(request.admin_file_path)}
+                    className="flex w-full items-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-all cursor-pointer text-left"
+                  >
+                    <FileCheck className="w-6 h-6 text-emerald-600 mr-3" />
+                    <div className="flex-1">
+                      <p className="font-medium text-emerald-900">
+                        Completed Document
+                      </p>
+                      <p className="text-sm text-emerald-600">
+                        Ready for download
+                      </p>
+                    </div>
+                    <Download className="w-5 h-5 text-emerald-600" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="px-8 py-6 bg-gray-50 rounded-b-2xl border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Last updated:
+                {formatDate(request.updated_at || request.created_at)}
+              </div>
+              {request.status === "pending" && (
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => {
+                      onUpdateStatus(request.id, "rejected");
+                      onClose();
+                    }}
+                    className="px-4 py-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors font-medium"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => {
+                      onUpdateStatus(request.id, "completed");
+                      onClose();
+                    }}
+                    className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors font-medium"
+                  >
+                    Approve
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AdminRecordsRequest = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
-  const [userInfo, setUserInfo] = useState({});
-  const [stats, setStats] = useState({});
-  const { toast, showToast, hideToast } = useToast();
-  const adminId = localStorage.getItem("userId");
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    completed: 0,
+    thisMonth: 0,
+    rejectedCount: 0,
+    avgProcessingTime: "...",
+  });
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
+  const adminId = localStorage.getItem("userId");
 
   const fetchRequests = async () => {
     try {
@@ -127,18 +453,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchAdminInfo = async () => {
-    if (!adminId) return;
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/users/${adminId}`
-      );
-      setUserInfo(response.data);
-    } catch (error) {
-      console.error("Failed to fetch admin info", error);
-    }
-  };
-
   const fetchStats = async () => {
     try {
       const response = await axios.get(
@@ -147,12 +461,12 @@ const AdminDashboard = () => {
       setStats(response.data);
     } catch (error) {
       console.error("Failed to fetch stats:", error);
+      showToast("Failed to load statistics.", "error");
     }
   };
 
   useEffect(() => {
     fetchRequests();
-    fetchAdminInfo();
     fetchStats();
 
     socket.on("newRequest", (newRequest) => {
@@ -182,14 +496,17 @@ const AdminDashboard = () => {
     return () => {
       socket.off("newRequest");
     };
-  }, [adminId, showToast]);
+  }, [showToast]);
 
   const handleUpdateStatus = async (id, status) => {
     try {
       await axios.post(`http://localhost:5000/api/requests/${id}/status`, {
         status,
       });
-      showToast("Request status updated successfully!", "success");
+      showToast(
+        `Request status updated to "${status}" successfully!`,
+        "success"
+      );
       fetchRequests();
       fetchStats();
     } catch (error) {
@@ -198,9 +515,20 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchRequests();
+    await fetchStats();
+    setIsRefreshing(false);
+    showToast("Data refreshed successfully!", "success");
+  };
+
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/");
+    showToast("Logging out...", "info");
+    setTimeout(() => {
+      navigate("/");
+    }, 1000);
   };
 
   const openModal = (request) => {
@@ -213,22 +541,19 @@ const AdminDashboard = () => {
     setSelectedRequest(null);
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="w-4 h-4 mr-2" />;
-      case "completed":
-        return <CheckCircle className="w-4 h-4 mr-2" />;
-      case "rejected":
-        return <XCircle className="w-4 h-4 mr-2" />;
-      default:
-        return null;
-    }
-  };
+  const filteredRequests = requests.filter((request) => {
+    const matchesSearch =
+      (request.resident_name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (request.type || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || request.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-inter">
-      {/* Toast Notification */}
+    <div className="max-h-[87vh] bg-gradient-to-br from-slate-50 via-blue-50 to-teal-50">
       {toast && (
         <Toast
           message={toast.message}
@@ -238,289 +563,97 @@ const AdminDashboard = () => {
         />
       )}
 
-      {/* Modal for Request Details */}
-      {isModalOpen && selectedRequest && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-lg bg-opacity-50 flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 transform transition-all duration-300  hover:scale-100">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">
-                Request Details
-              </h3>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p>
-                  <span className="font-semibold text-gray-700">Resident:</span>{" "}
-                  {selectedRequest.resident_name}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Type:</span>{" "}
-                  {selectedRequest.type}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Status:</span>{" "}
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-                      statusClasses[selectedRequest.status]
-                    }`}
-                  >
-                    {getStatusIcon(selectedRequest.status)}
-                    {selectedRequest.status}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">
-                    Submitted:
-                  </span>{" "}
-                  {moment(selectedRequest.created_at).format("LLL")}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Details:</p>
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p className="text-gray-800">{selectedRequest.details}</p>
-                </div>
-              </div>
-              {selectedRequest.file_path && (
-                <div>
-                  <p className="font-semibold text-gray-700 mb-2">
-                    Supporting Document:
-                  </p>
-                  <a
-                    href={`http://localhost:5000/uploads/${selectedRequest.file_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center p-3 border border-gray-300 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors"
-                  >
-                    <FolderOpen className="w-5 h-5 mr-3" />
-                    View Document
-                  </a>
-                </div>
-              )}
-              {selectedRequest.status === "approved" &&
-                !selectedRequest.admin_file_path && (
-                  <div className="mt-4">
-                    <p className="font-semibold text-gray-700 mb-2">
-                      Upload Final Document:
-                    </p>
-                    <input
-                      type="file"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
+      <RequestDetailsModal
+        request={selectedRequest}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onUpdateStatus={handleUpdateStatus}
+      />
 
-                        const formData = new FormData();
-                        formData.append("file", file);
-
-                        try {
-                          // Upload the file
-                          await axios.post(
-                            `http://localhost:5000/api/requests/${selectedRequest.id}/upload`,
-                            formData
-                          );
-
-                          // Update the status to completed
-                          await handleUpdateStatus(
-                            selectedRequest.id,
-                            "completed"
-                          );
-
-                          closeModal(); // Optional: close modal after success
-                          showToast(
-                            "Document uploaded and request marked as completed.",
-                            "success"
-                          );
-                        } catch (error) {
-                          console.error("Upload error:", error);
-                          showToast("Failed to upload document.", "error");
-                        }
-                      }}
-                      className="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg p-2"
-                    />
-                  </div>
-                )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <header className="bg-white shadow-sm p-6 flex items-center justify-between z-10 sticky top-0">
-        <h1 className="text-3xl font-bold text-gray-900">
-          <span className="text-teal-600">Resident</span> Records Admin
-        </h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-gray-700 font-medium hidden sm:block">
-            Welcome, {userInfo.first_name || "Admin"}
-          </span>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors flex items-center space-x-2"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="hidden sm:block">Logout</span>
-          </button>
-        </div>
-      </header>
-
-      <div className="flex-1 p-6 space-y-8">
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Total Requests
-                </p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.total || 0}
-                </p>
+      <main className="p-6 space-y-8 ">
+        {/* Controls and Filters */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6  ">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search requests..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                />
               </div>
-              <div className="p-3 bg-teal-100 text-teal-600 rounded-full">
-                <FileText className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Pending</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.pending || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full">
-                <Clock className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Completed</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.completed || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 text-green-600 rounded-full">
-                <CheckCircle className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 transform hover:scale-105 transition-transform duration-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">This Month</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {stats.thisMonth || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-                <CalendarDays className="w-6 h-6" />
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-8 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
               </div>
             </div>
           </div>
         </div>
-
-        {/* Requests List Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-6 border-b pb-4">
-            <h2 className="text-2xl font-semibold text-gray-900 flex items-center">
-              <List className="w-6 h-6 mr-2 text-teal-600" />
-              Request Log
+        {/* Requests Grid */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+              <List className="w-6 h-6 mr-3 text-teal-600" />
+              Recent Requests
+              <span className="ml-3 px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                {filteredRequests.length}
+              </span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            {requests.length === 0 ? (
-              <div className="py-12 text-center text-gray-500 text-lg">
-                <p>No new requests at the moment.</p>
-              </div>
-            ) : (
-              requests.map((request) => (
-                <div
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[65vh] overflow-y-auto pr-2">
+            {filteredRequests.length > 0 ? (
+              filteredRequests.map((request) => (
+                <RequestCard
                   key={request.id}
-                  className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center">
-                      <div className="flex items-center space-x-2">
-                        <User className="w-5 h-5 text-teal-600" />
-                        <span className="font-semibold text-gray-800">
-                          {request.resident_name ||
-                            `Resident ID: ${request.user_id}`}
-                        </span>
-                      </div>
-                      <span
-                        className={`ml-4 text-xs font-medium px-2 py-1 rounded-full border flex items-center ${
-                          statusClasses[request.status]
-                        }`}
-                      >
-                        {getStatusIcon(request.status)}
-                        {request.status}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <button
-                        onClick={() => openModal(request)}
-                        className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-200 transition-colors"
-                      >
-                        <MoreVertical className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Type:</span>{" "}
-                        {request.type}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Date:</span>{" "}
-                        {moment(request.created_at).format("MMMM D, YYYY")}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      {request.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(request.id, "approved")
-                            }
-                            className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors"
-                            title="Mark as Completed"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleUpdateStatus(request.id, "rejected")
-                            }
-                            className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"
-                            title="Reject Request"
-                          >
-                            <XCircle className="w-5 h-5" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  request={request}
+                  onViewDetails={openModal}
+                  onUpdateStatus={handleUpdateStatus}
+                />
               ))
+            ) : (
+              <div className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 p-12">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    No requests found
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    {searchTerm || statusFilter !== "all"
+                      ? "Try adjusting your search or filter criteria"
+                      : "No requests have been submitted yet"}
+                  </p>
+                  {(searchTerm || statusFilter !== "all") && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm("");
+                        setStatusFilter("all");
+                      }}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default AdminRecordsRequest;
