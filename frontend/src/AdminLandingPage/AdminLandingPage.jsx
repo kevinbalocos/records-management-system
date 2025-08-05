@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"; // Import useEffect
 import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
-import AdminDashboard from "./AdminRecordsRequest";
+import AdminDashboard from "../AdminLandingPage/AdminDashboard";
+import RecordsRequest from "./AdminRecordsRequest";
 import IndigencyAdmin from "./IndigencyAdmin";
 import AdminCorrectionList from "./AdminCorrectionList";
 import { useNavigate } from "react-router-dom";
@@ -233,8 +234,8 @@ export default function AdminPage() {
         {/* Page Content Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-teal-50">
           {activeItem === "dashboard" && (
-            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center text-gray-700 font-semibold text-xl sm:text-2xl h-full flex items-center justify-center border border-gray-100">
-              Welcome to your Admin Dashboard!
+            <div className="">
+              <AdminDashboard />
             </div>
           )}
           {activeItem === "approve" && (
