@@ -909,32 +909,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Main Content */}
-      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 p-6 sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-              Admin
-            </span>{" "}
-            Dashboard
-          </h1>
-          <div className="flex items-center space-x-4">
-            <div className="hidden sm:flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-full">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-700 font-medium">
-                Welcome, {userInfo.first_name || "Admin"}
-              </span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-xl bg-gradient-to-r from-red-50 to-red-100 text-red-600 hover:from-red-100 hover:to-red-200 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
       <div className={`p-6 space-y-8 ${animationClass}`}>
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
