@@ -217,7 +217,7 @@ const RequestCard = ({ request, onViewDetails, onUpdateStatus }) => {
           {request.status === "pending" && (
             <div className="flex items-center space-x-1">
               <button
-                onClick={() => onUpdateStatus(request.id, "completed")}
+                onClick={() => onUpdateStatus(request.id, "approved")}
                 className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
                 title="Approve"
               >
@@ -362,6 +362,45 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
               </div>
             )}
 
+            {request.status === "approved" && !request.admin_file_path && (
+              <div className="mt-4">
+                <p className="font-semibold text-gray-700 mb-2">
+                  Upload Final Document:
+                </p>
+                <input
+                  type="file"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    try {
+                      await axios.post(
+                        `http://localhost:5000/api/requests/${request.id}/upload`,
+                        formData
+                      );
+
+                      await onUpdateStatus(request.id, "completed");
+
+                      onClose();
+                      await fetchRequests(); 
+
+                      showToast(
+                        "Document uploaded and request marked as completed.",
+                        "success"
+                      );
+                    } catch (error) {
+                      console.error("Upload error:", error);
+                      showToast("Failed to upload document.", "error");
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-600 border border-gray-300 rounded-lg p-2"
+                />
+              </div>
+            )}
+
             {request.admin_file_path && (
               <div>
                 <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -407,7 +446,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                   </button>
                   <button
                     onClick={() => {
-                      onUpdateStatus(request.id, "completed");
+                      onUpdateStatus(request.id, "approved");
                       onClose();
                     }}
                     className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors font-medium"
