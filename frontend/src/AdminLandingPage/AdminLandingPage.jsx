@@ -245,7 +245,7 @@ export default function AdminPage() {
           )}
           {activeItem === "records-request" && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
-              <AdminDashboard />
+              <RecordsRequest />
             </div>
           )}
           {activeItem === "indigency" && (

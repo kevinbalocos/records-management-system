@@ -237,11 +237,16 @@ const AdminDashboard = () => {
   const [adminFile, setAdminFile] = useState(null);
   const fileInputRef = useRef(null);
 
+  // New states for drill-down
+  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
+  const [selectedAssistanceType, setSelectedAssistanceType] = useState("");
+  const [breakdownData, setBreakdownData] = useState(null); // Data for the breakdown modal
+
   // States for chart data
   const [requestsByTypeData, setRequestsByTypeData] = useState([]);
   const [requestsByStatusData, setRequestsByStatusData] = useState([]);
   const [requestsOverTimeData, setRequestsOverTimeData] = useState([]);
-  const [completionRateData, setCompletionRateData] = useState([]); // New state for Radial Bar Chart
+  const [completionRateData, setCompletionRateData] = useState([]);
 
   const [activeChart, setActiveChart] = useState("all");
   const [animationClass, setAnimationClass] = useState("");
@@ -250,11 +255,25 @@ const AdminDashboard = () => {
     setAnimationClass("animate-fadeIn");
   }, []);
 
+  // Map for full assistance type names
+  const assistanceTypeMap = {
+    MAIP: "Medical Assistance for Indigent Patients",
+    AICS: "Assistance to Individuals in Crisis Situation",
+    "Medical Assistance": "Medical Assistance", // Assuming this is distinct if explicitly mentioned
+    Others: "Others",
+    // Keep existing types if they are still relevant for other requests
+    Maintenance: "Maintenance",
+    Security: "Security",
+    Amenities: "Amenities",
+    Complaints: "Complaints",
+  };
+
   // Function to process raw request data into chart-friendly formats
   const processRequestDataForCharts = useCallback((allRequests) => {
     // Requests by Type
     const typeCounts = allRequests.reduce((acc, request) => {
-      acc[request.type] = (acc[request.type] || 0) + 1;
+      const typeName = assistanceTypeMap[request.type] || request.type; // Use full name or original if not mapped
+      acc[typeName] = (acc[typeName] || 0) + 1;
       return acc;
     }, {});
     setRequestsByTypeData(
@@ -265,27 +284,26 @@ const AdminDashboard = () => {
       }))
     );
 
-    // Requests by Status
+    // Requests by Status (remains the same)
     const statusCounts = allRequests.reduce((acc, request) => {
       acc[request.status] = (acc[request.status] || 0) + 1;
       return acc;
     }, {});
     setRequestsByStatusData(
       Object.keys(statusCounts).map((status, index) => ({
-        name: status.charAt(0).toUpperCase() + status.slice(1), // Capitalize first letter
+        name: status.charAt(0).toUpperCase() + status.slice(1),
         count: statusCounts[status],
-        fill: CHART_COLORS.cool[index % CHART_COLORS.cool.length], // Using 'fill' for BarChart
+        fill: CHART_COLORS.cool[index % CHART_COLORS.cool.length],
       }))
     );
 
-    // Requests Over Time (Monthly)
+    // Requests Over Time (Monthly) (remains the same)
     const monthlyCounts = allRequests.reduce((acc, request) => {
       const monthYear = moment(request.created_at).format("MMM YYYY");
       acc[monthYear] = (acc[monthYear] || 0) + 1;
       return acc;
     }, {});
 
-    // Generate data for the last 12 months, even if no requests
     const last12MonthsData = [];
     for (let i = 11; i >= 0; i--) {
       const month = moment().subtract(i, "months").format("MMM YYYY");
@@ -295,7 +313,7 @@ const AdminDashboard = () => {
       });
     }
     setRequestsOverTimeData(last12MonthsData);
-  }, []); // No dependencies, as it only uses its arguments and constants
+  }, []);
 
   // Fetches all requests with associated resident names from the backend
   const fetchRequests = useCallback(async () => {
@@ -307,7 +325,7 @@ const AdminDashboard = () => {
       console.error("Failed to fetch requests:", error);
       showToast("Failed to load requests.", "error");
     }
-  }, [processRequestDataForCharts, showToast]); // Dependencies for useCallback
+  }, [processRequestDataForCharts, showToast]);
 
   // Fetches the logged-in admin's information
   const fetchAdminInfo = useCallback(async () => {
@@ -320,7 +338,7 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Failed to fetch admin info", error);
     }
-  }, [adminId]); // Dependencies for useCallback
+  }, [adminId]);
 
   // Fetches aggregated statistics for the dashboard
   const fetchStats = useCallback(async () => {
@@ -332,7 +350,7 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     }
-  }, []); // No dependencies, as it only uses constants
+  }, []);
 
   useEffect(() => {
     fetchRequests();
@@ -406,6 +424,44 @@ const AdminDashboard = () => {
       setCompletionRateData([{ name: "No Data", value: 100, fill: "#e0e0e0" }]); // Show 100% grey if no data
     }
   }, [stats]);
+
+  // New function to fetch breakdown data for a specific assistance type
+  const fetchBreakdownData = useCallback(
+    async (type) => {
+      try {
+        // Assuming a new backend endpoint for this
+        const response = await axios.get(
+          `http://localhost:5000/api/requests/breakdown/${type}`
+        );
+        setBreakdownData(response.data);
+        setSelectedAssistanceType(type);
+        setIsBreakdownModalOpen(true);
+      } catch (error) {
+        console.error(`Failed to fetch breakdown data for ${type}:`, error);
+        showToast(
+          `Failed to load breakdown data for ${type}. Please ensure backend endpoint is configured and data exists.`,
+          "error"
+        );
+        setBreakdownData(null);
+      }
+    },
+    [showToast]
+  );
+
+  // Handle click on Pie Chart slice
+  const handlePieSliceClick = (data, index) => {
+    // data.name will be the full name like "Medical Assistance for Indigent Patients"
+    // We need to map it back to the backend's internal type (e.g., "MAIP")
+    const originalType = Object.keys(assistanceTypeMap).find(
+      (key) => assistanceTypeMap[key] === data.name
+    );
+    if (originalType) {
+      fetchBreakdownData(originalType);
+    } else {
+      // Fallback: if no specific mapping, use the displayed name directly
+      fetchBreakdownData(data.name);
+    }
+  };
 
   // Updates the status of a request (completed or rejected)
   const handleUpdateStatus = async (id, status) => {
@@ -509,6 +565,196 @@ const AdminDashboard = () => {
         strokeWidth={2}
         className="drop-shadow-sm hover:r-6 transition-all duration-200"
       />
+    );
+  };
+
+  // Component for the breakdown modal
+  const AssistanceBreakdownModal = ({ type, data, onClose }) => {
+    if (!data) return null; // Don't render if no data
+
+    // Process data for municipality chart
+    const municipalityData = Object.keys(data.municipalities || {}).map(
+      (muni) => ({
+        name: muni,
+        count: data.municipalities[muni],
+      })
+    );
+
+    // Process data for demographic charts
+    const genderData = [
+      { name: "Male", value: data.gender?.Male || 0, fill: "#3b82f6" },
+      { name: "Female", value: data.gender?.Female || 0, fill: "#ec4899" },
+      { name: "Other", value: data.gender?.Other || 0, fill: "#6b7280" },
+    ];
+
+    const specialCategoriesData = [
+      { name: "PWD", value: data.categories?.is_pwd || 0, fill: "#f59e0b" },
+      { name: "LGBT", value: data.categories?.is_lgbt || 0, fill: "#a855f7" },
+      {
+        name: "Senior",
+        value: data.categories?.is_senior || 0,
+        fill: "#10b981",
+      },
+    ];
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4 overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-8 transform transition-all duration-300 scale-95 hover:scale-100">
+          <div className="flex justify-between items-start mb-6">
+            <h3 className="text-2xl font-bold text-gray-900">
+              Breakdown for {assistanceTypeMap[type] || type}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="space-y-8">
+            {/* Breakdown by Municipality */}
+            <ChartContainer title="Requests by Municipality" icon={BarChart3}>
+              <ResponsiveContainer width="100%" height={250}>
+                {municipalityData.length > 0 ? (
+                  <BarChart
+                    data={municipalityData}
+                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      opacity={0.6}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      angle={-30}
+                      textAnchor="end"
+                      height={60}
+                      tick={{ fill: "#6b7280", fontSize: 11 }}
+                    />
+                    <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} />
+                    <Tooltip
+                      content={
+                        <CustomTooltip
+                          formatter={(value) => `${value} requests`}
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill={CHART_COLORS.cool[2]}
+                      radius={[8, 8, 0, 0]}
+                      animationDuration={800}
+                    />
+                  </BarChart>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No municipality data available.
+                  </div>
+                )}
+              </ResponsiveContainer>
+            </ChartContainer>
+
+            {/* Breakdown by Demographics (Gender, PWD, LGBT, Senior) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <ChartContainer title="Requests by Gender" icon={Users}>
+                <ResponsiveContainer width="100%" height={250}>
+                  {genderData.some((d) => d.value > 0) ? ( // Check if any gender has data
+                    <PieChart>
+                      <Pie
+                        data={genderData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                        animationDuration={800}
+                      >
+                        {genderData.map((entry, index) => (
+                          <Cell
+                            key={`cell-gender-${index}`}
+                            fill={entry.fill}
+                            stroke="#fff"
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={
+                          <CustomTooltip
+                            formatter={(value) => `${value} requests`}
+                          />
+                        }
+                      />
+                      <Legend content={<CustomLegend />} />
+                    </PieChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      No gender data available.
+                    </div>
+                  )}
+                </ResponsiveContainer>
+              </ChartContainer>
+
+              <ChartContainer
+                title="Requests by Special Categories"
+                icon={List}
+              >
+                <ResponsiveContainer width="100%" height={250}>
+                  {specialCategoriesData.some((d) => d.value > 0) ? ( // Check if any category has data
+                    <BarChart
+                      data={specialCategoriesData}
+                      layout="vertical"
+                      margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#e5e7eb"
+                        opacity={0.6}
+                      />
+                      <XAxis
+                        type="number"
+                        tick={{ fill: "#6b7280", fontSize: 12 }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: "#6b7280", fontSize: 12 }}
+                      />
+                      <Tooltip
+                        content={
+                          <CustomTooltip
+                            formatter={(value) => `${value} requests`}
+                          />
+                        }
+                      />
+                      <Bar dataKey="value" animationDuration={800}>
+                        {specialCategoriesData.map((entry, index) => (
+                          <Cell
+                            key={`cell-category-${index}`}
+                            fill={entry.fill}
+                            radius={[0, 8, 8, 0]}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      No special category data available.
+                    </div>
+                  )}
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -663,6 +909,32 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {/* Main Content */}
+      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200/50 p-6 sticky top-0 z-50">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              Admin
+            </span>{" "}
+            Dashboard
+          </h1>
+          <div className="flex items-center space-x-4">
+            <div className="hidden sm:flex items-center space-x-3 px-4 py-2 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-full">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-gray-700 font-medium">
+                Welcome, {userInfo.first_name || "Admin"}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl bg-gradient-to-r from-red-50 to-red-100 text-red-600 hover:from-red-100 hover:to-red-200 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
       <div className={`p-6 space-y-8 ${animationClass}`}>
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -809,6 +1081,8 @@ const AdminDashboard = () => {
                           dataKey="value"
                           animationBegin={0}
                           animationDuration={1000}
+                          onCellClick={handlePieSliceClick} // Add click handler here
+                          cursor="pointer" // Indicate it's clickable
                         >
                           {requestsByTypeData.map((entry, index) => (
                             <Cell
@@ -1012,17 +1286,6 @@ const AdminDashboard = () => {
                           name="Total Requests"
                           animationDuration={2000}
                         />
-                        {/* You might want to add 'completed' or 'pending' lines here if your monthly data includes it */}
-                        {/* Example: */}
-                        {/* <Line
-                          type="monotone"
-                          dataKey="completed"
-                          stroke={CHART_COLORS.cool[1]}
-                          strokeWidth={2}
-                          dot={<CustomDot />}
-                          name="Completed"
-                          animationDuration={2500}
-                        /> */}
                       </AreaChart>
                     ) : (
                       <div className="flex items-center justify-center h-full text-gray-500">
@@ -1118,6 +1381,13 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      {isBreakdownModalOpen && selectedAssistanceType && (
+        <AssistanceBreakdownModal
+          type={selectedAssistanceType}
+          data={breakdownData}
+          onClose={() => setIsBreakdownModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
