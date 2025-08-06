@@ -1,7 +1,4 @@
-const express = require("express");
-const router = express.Router();
-const upload = require("../middleware/uploadRecordsRequestMiddleware");
-const db = require("../db");
+const db = require("../db"); // Assuming db.js is in the parent directory
 
 exports.createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
@@ -63,9 +60,9 @@ exports.getUserRequests = (req, res) => {
 
 exports.getAllRequests = (req, res) => {
   const query = `
-    SELECT 
-      r.*, 
-      u.first_name, 
+    SELECT
+      r.*,
+      u.first_name,
       u.last_name,
       CONCAT(u.first_name, ' ', u.last_name) AS resident_name
     FROM requests r
@@ -104,7 +101,7 @@ exports.uploadAdminFile = (req, res) => {
   }
 
   const query = `
-    UPDATE requests 
+    UPDATE requests
     SET admin_file_path = ?, status = 'completed'
     WHERE id = ?
   `;

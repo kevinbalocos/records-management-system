@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { io } from "socket.io-client";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Users,
   BarChart3,
@@ -16,9 +15,12 @@ import {
   Upload,
   Clock,
   CalendarDays,
+  Bell, // For SystemAlert
 } from "lucide-react";
+import { io } from "socket.io-client";
 
 const socket = io("http://localhost:5000");
+const API_BASE = "http://localhost:5000";
 
 function getInitials(name) {
   if (!name) return "";
@@ -29,90 +31,137 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-const Toast = ({ message, type, onClose, isVisible }) => {
-  const getToastStyles = () => {
+// Custom SystemAlert component (copied from LoginPage, adapted for general use)
+const SystemAlert = ({
+  message,
+  type,
+  onClose,
+  isVisible,
+  isDarkMode = false,
+}) => {
+  const getAlertStyles = () => {
     const baseStyles =
-      "flex items-center p-4 rounded-lg shadow-lg border-l-4 min-w-80 max-w-md";
-
-    switch (type) {
-      case "success":
-        return `${baseStyles} bg-green-50 border-green-500 text-green-800`;
-      case "error":
-        return `${baseStyles} bg-red-50 border-red-500 text-red-800`;
-      case "warning":
-        return `${baseStyles} bg-yellow-50 border-yellow-500 text-yellow-800`;
-      default:
-        return `${baseStyles} bg-blue-50 border-blue-500 text-blue-800`;
+      "flex items-center p-4 rounded-xl shadow-2xl backdrop-blur-md border max-w-lg w-full";
+    if (isDarkMode) {
+      switch (type) {
+        case "success":
+          return `${baseStyles} bg-emerald-900/90 border-emerald-700 text-emerald-200`;
+        case "error":
+          return `${baseStyles} bg-red-900/90 border-red-700 text-red-200`;
+        case "warning":
+          return `${baseStyles} bg-amber-900/90 border-amber-700 text-amber-200`;
+        case "info":
+          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
+        default:
+          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
+      }
+    } else {
+      switch (type) {
+        case "success":
+          return `${baseStyles} bg-emerald-50/90 border-emerald-200 text-emerald-800`;
+        case "error":
+          return `${baseStyles} bg-red-50/90 border-red-200 text-red-800`;
+        case "warning":
+          return `${baseStyles} bg-amber-50/90 border-amber-200 text-amber-800`;
+        case "info":
+          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
+        default:
+          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
+      }
     }
   };
 
   const getIcon = () => {
-    switch (type) {
-      case "success":
-        return (
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-        );
-      case "error":
-        return <XCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />;
-      case "warning":
-        return (
-          <AlertCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-        );
-      default:
-        return (
-          <AlertCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-        );
+    const iconClass = "w-6 h-6 mr-3 flex-shrink-0";
+    if (isDarkMode) {
+      switch (type) {
+        case "success":
+          return <CheckCircle className={`${iconClass} text-emerald-400`} />;
+        case "error":
+          return <XCircle className={`${iconClass} text-red-400`} />;
+        case "warning":
+          return <AlertCircle className={`${iconClass} text-amber-400`} />;
+        case "info":
+          return <Bell className={`${iconClass} text-blue-400`} />;
+        default:
+          return <AlertCircle className={`${iconClass} text-blue-400`} />;
+      }
+    } else {
+      switch (type) {
+        case "success":
+          return <CheckCircle className={`${iconClass} text-emerald-500`} />;
+        case "error":
+          return <XCircle className={`${iconClass} text-red-500`} />;
+        case "warning":
+          return <AlertCircle className={`${iconClass} text-amber-500`} />;
+        case "info":
+          return <Bell className={`${iconClass} text-blue-500`} />;
+        default:
+          return <AlertCircle className={`${iconClass} text-blue-500`} />;
+      }
     }
   };
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ease-in-out ${
-        isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
-      }`}
+      className={`fixed top-10 left-1/2 -translate-x-1/2 z-50 transform transition-all duration-500 ease-out
+        ${
+          isVisible
+            ? "translate-y-0 opacity-100 scale-100"
+            : "-translate-y-full opacity-0 scale-95"
+        }`}
     >
-      <div className={getToastStyles()}>
+      <div className={getAlertStyles()}>
         {getIcon()}
         <div className="flex-1">
-          <p className="font-medium">{message}</p>
+          <p className="font-semibold text-base">{message}</p>
         </div>
         <button
           onClick={onClose}
-          className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className={`ml-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/20
+                      ${
+                        isDarkMode
+                          ? "dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700/50"
+                          : ""
+                      }`}
         >
-          <XCircle className="w-4 h-4" />
+          <XCircle className="w-5 h-5" />
         </button>
       </div>
     </div>
   );
 };
 
-const useToast = () => {
-  const [toast, setToast] = useState(null);
+// Custom hook for notifications (re-using the logic, renamed for clarity)
+const useSystemAlert = () => {
+  const [alertState, setAlertState] = useState(null);
 
-  const showToast = (message, type = "success", duration = 4000) => {
-    setToast({ message, type, isVisible: true });
-    setTimeout(() => {
-      setToast((prev) => (prev ? { ...prev, isVisible: false } : null));
-    }, duration);
-    setTimeout(() => {
-      setToast(null);
-    }, duration + 300);
-  };
+  const showAlert = useCallback(
+    (message, type = "success", duration = 4000, isDarkMode = false) => {
+      setAlertState({ message, type, isVisible: true, isDarkMode });
+      setTimeout(() => {
+        setAlertState((prev) => (prev ? { ...prev, isVisible: false } : null));
+      }, duration);
+      setTimeout(() => {
+        setAlertState(null);
+      }, duration + 300);
+    },
+    []
+  );
 
-  const hideToast = () => {
-    setToast((prev) => (prev ? { ...prev, isVisible: false } : null));
+  const hideAlert = useCallback(() => {
+    setAlertState((prev) => (prev ? { ...prev, isVisible: false } : null));
     setTimeout(() => {
-      setToast(null);
+      setAlertState(null);
     }, 300);
-  };
+  }, []);
 
-  return { toast, showToast, hideToast };
+  return { alert: alertState, showAlert, hideAlert };
 };
 
 const RecordsLandingPage = () => {
   const navigate = useNavigate();
-  const [type, setType] = useState("Medical");
+  const [type, setType] = useState(""); // Initial type can be empty or first fetched type
   const [details, setDetails] = useState("");
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,14 +169,13 @@ const RecordsLandingPage = () => {
   const userId = localStorage.getItem("userId");
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
-  const { toast, showToast, hideToast } = useToast();
+  const [requestTypes, setRequestTypes] = useState([]); // State for dynamic request types
+  const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert(); // Using new hook name
 
   const fetchStats = async () => {
     try {
-      const userId = localStorage.getItem("userId");
-      const res = await axios.get(
-        `http://localhost:5000/api/requests/stats/${userId}`
-      );
+      // Changed endpoint to fetch global statistics, as defined in backend/controllers/requestController.js
+      const res = await axios.get(`${API_BASE}/api/requests/stats`);
       const data = res.data;
       setStats([
         {
@@ -161,74 +209,126 @@ const RecordsLandingPage = () => {
       ]);
     } catch (err) {
       console.error("Failed to fetch stats:", err);
+      showAlert("Failed to load statistics.", "error");
     }
   };
+
+  const fetchRequestTypes = useCallback(async () => {
+    try {
+      // Fetch only published request types for the user side
+      const res = await axios.get(
+        `${API_BASE}/api/request-types?status=published`
+      );
+      setRequestTypes(res.data);
+      // Set the default selected type to the first available published type
+      if (res.data.length > 0) {
+        setType(res.data[0].name);
+      } else {
+        setType(""); // No types available
+      }
+    } catch (err) {
+      console.error("Failed to fetch request types:", err);
+      showAlert("Failed to load available request types.", "error");
+    }
+  }, [showAlert]);
 
   useEffect(() => {
     if (!userId) return;
     fetchStats();
+    fetchRequestTypes(); // Fetch request types on mount
+
+    // Check for persistent login notification
+    const storedNotification = sessionStorage.getItem("loginNotification");
+    if (storedNotification) {
+      try {
+        const { message, type } = JSON.parse(storedNotification);
+        showAlert(message, type);
+        sessionStorage.removeItem("loginNotification"); // Clear it after displaying
+      } catch (e) {
+        console.error("Failed to parse stored notification:", e);
+      }
+    }
+
     socket.on("newRequest", (data) => {
       fetchStats();
       if (data.user_id == userId) {
         setActivities((prev) => [data, ...prev]);
+        showAlert("Your request status has been updated!", "info"); // Notify user of status change
       }
     });
     return () => {
       socket.off("newRequest");
     };
-  }, [userId]);
+  }, [userId, fetchStats, fetchRequestTypes, showAlert]);
 
   useEffect(() => {
     if (!userId) return;
     const fetchRequests = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:5000/api/requests/user/${userId}`
-        );
+        const res = await axios.get(`${API_BASE}/api/requests/user/${userId}`);
         setActivities(res.data);
       } catch (error) {
         console.error("Failed to fetch user requests:", error);
+        showAlert("Failed to load your past requests.", "error");
       }
     };
     fetchRequests();
-  }, [userId]);
+  }, [userId, showAlert]);
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`http://localhost:5000/api/users/${userId}`)
+    fetch(`${API_BASE}/api/users/${userId}`)
       .then((res) => {
         if (!res.ok) throw new Error("User not found");
         return res.json();
       })
       .then((data) => setUserInfo(data))
-      .catch((err) => console.error("Failed to fetch user info", err));
-  }, [userId]);
+      .catch((err) => {
+        console.error("Failed to fetch user info", err);
+        showAlert("Failed to load user information.", "error");
+      });
+  }, [userId, showAlert]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     if (!userId) {
-      showToast("User not logged in.", "error");
+      showAlert("User not logged in.", "error");
       setIsSubmitting(false);
       return;
     }
+    // Check if a type is selected and if there are any request types available
+    if (!type || !details || !file || requestTypes.length === 0) {
+      showAlert(
+        "Please fill in all fields, upload a document, and ensure request types are available.",
+        "warning"
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("type", type);
     formData.append("details", details);
     formData.append("file", file);
     formData.append("user_id", userId);
     try {
-      const res = await fetch("http://localhost:5000/api/requests", {
+      const res = await fetch(`${API_BASE}/api/requests`, {
         method: "POST",
         body: formData,
       });
       if (!res.ok) throw new Error("Failed to submit request");
-      showToast("Request submitted successfully!", "success");
+      showAlert("Request submitted successfully!", "success");
       setDetails("");
       setFile(null);
-      setType("Medical");
+      // Reset type to the first available type after submission
+      if (requestTypes.length > 0) {
+        setType(requestTypes[0].name);
+      } else {
+        setType("");
+      }
     } catch (error) {
       console.error(error);
-      showToast("Failed to submit request.", "error");
+      showAlert("Failed to submit request.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -244,12 +344,12 @@ const RecordsLandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={hideToast}
-          isVisible={toast.isVisible}
+      {systemAlert && (
+        <SystemAlert
+          message={systemAlert.message}
+          type={systemAlert.type}
+          onClose={hideAlert}
+          isVisible={systemAlert.isVisible}
         />
       )}
 
@@ -344,15 +444,28 @@ const RecordsLandingPage = () => {
                     <select
                       value={type}
                       onChange={(e) => setType(e.target.value)}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || requestTypes.length === 0}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors bg-white"
                     >
-                      <option value="Medical">Medical Assistance</option>
-                      <option value="Guarantee Letter">Guarantee Letter</option>
-                      <option value="MAIP">
-                        MAIP (Medical Assistance Indigent Program)
-                      </option>
+                      {requestTypes.length === 0 ? (
+                        <option value="">No request types available</option>
+                      ) : (
+                        requestTypes.map((reqType) => {
+                          // Changed to explicit return
+                          return (
+                            <option key={reqType.id} value={reqType.name}>
+                              {reqType.name}
+                            </option>
+                          );
+                        })
+                      )}
                     </select>
+                    {requestTypes.length === 0 && (
+                      <p className="text-sm text-red-500 mt-1">
+                        No request types are currently published. Please contact
+                        admin.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -396,9 +509,9 @@ const RecordsLandingPage = () => {
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || requestTypes.length === 0}
                     className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center space-x-2 ${
-                      isSubmitting
+                      isSubmitting || requestTypes.length === 0
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 hover:shadow-lg transform hover:-translate-y-0.5"
                     } text-white`}
@@ -458,7 +571,7 @@ const RecordsLandingPage = () => {
                           {activity.status === "completed" &&
                             activity.admin_file_path && (
                               <a
-                                href={`http://localhost:5000/uploads/${activity.admin_file_path}`}
+                                href={`${API_BASE}/uploads/${activity.admin_file_path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-blue-600 hover:underline"

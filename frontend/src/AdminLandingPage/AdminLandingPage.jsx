@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval"; // Assuming these paths are correct
-import AdminDashboard from "../AdminLandingPage/AdminDashboard"; // Assuming these paths are correct
-import RecordsRequest from "./AdminRecordsRequest"; // Assuming these paths are correct
-import IndigencyAdmin from "./IndigencyAdmin"; // Assuming these paths are correct
-import AdminCorrectionList from "./AdminCorrectionList"; // Assuming these paths are correct
+import { useState, useEffect, useCallback } from "react";
+import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUserApproval";
+import AdminDashboard from "../AdminLandingPage/AdminDashboard";
+import RecordsRequest from "./AdminRecordsRequest";
+import IndigencyAdmin from "./IndigencyAdmin";
+import AdminCorrectionList from "./AdminCorrectionList";
+import AdminRequestTypes from "./AdminRequestTypes";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -15,10 +16,11 @@ import {
   CheckCircle,
   ClipboardList,
   X,
-  Sun, // For theme toggle
-  Moon, // For theme toggle
-  Menu, // Hamburger icon for mobile
+  Sun,
+  Moon,
+  Menu,
   Activity, // For loading spinner in splash
+  ListChecks, // Icon for Request Types
 } from "lucide-react";
 
 // Custom CSS for glassmorphism and animations (Tailwind doesn't directly support backdrop-filter)
@@ -94,28 +96,149 @@ const LoadingSplash = ({ isVisible, isDarkMode }) => {
                       ${isDarkMode ? "text-teal-400" : "text-teal-600"}`}
         />
         <h2
-          className={`text-3xl font-bold uppercase tracking-widest ${
+          className={`text-3xl font-bold ${
             isDarkMode ? "text-white" : "text-gray-900"
           }`}
         >
-          Initializing Admin Dashboard Systems
+          Loading Admin Panel
         </h2>
-
         <p
           className={`text-lg ${
             isDarkMode ? "text-gray-400" : "text-gray-600"
           }`}
         >
-          Please hold on while we prepare your personalized admin dashboard.
-          <br />
-          We’re fetching the latest data and loading all necessary modules.
-          <br />
-          Everything will be ready shortly for you to manage your records
-          efficiently.
+          Getting things ready for you...
         </p>
       </div>
     </div>
   );
+};
+
+// Re-using SystemAlert component and useSystemAlert hook for consistency across admin pages
+const SystemAlert = ({
+  message,
+  type,
+  onClose,
+  isVisible,
+  isDarkMode = false,
+}) => {
+  const getAlertStyles = () => {
+    const baseStyles =
+      "flex items-center p-4 rounded-xl shadow-2xl backdrop-blur-md border max-w-lg w-full";
+    if (isDarkMode) {
+      switch (type) {
+        case "success":
+          return `${baseStyles} bg-emerald-900/90 border-emerald-700 text-emerald-200`;
+        case "error":
+          return `${baseStyles} bg-red-900/90 border-red-700 text-red-200`;
+        case "warning":
+          return `${baseStyles} bg-amber-900/90 border-amber-700 text-amber-200`;
+        case "info":
+          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
+        default:
+          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
+      }
+    } else {
+      switch (type) {
+        case "success":
+          return `${baseStyles} bg-emerald-50/90 border-emerald-200 text-emerald-800`;
+        case "error":
+          return `${baseStyles} bg-red-50/90 border-red-200 text-red-800`;
+        case "warning":
+          return `${baseStyles} bg-amber-50/90 border-amber-200 text-amber-800`;
+        case "info":
+          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
+        default:
+          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
+      }
+    }
+  };
+
+  const getIcon = () => {
+    const iconClass = "w-6 h-6 mr-3 flex-shrink-0";
+    if (isDarkMode) {
+      switch (type) {
+        case "success":
+          return <CheckCircle className={`${iconClass} text-emerald-400`} />;
+        case "error":
+          return <XCircle className={`${iconClass} text-red-400`} />;
+        case "warning":
+          return <AlertCircle className={`${iconClass} text-amber-400`} />;
+        case "info":
+          return <Bell className={`${iconClass} text-blue-400`} />;
+        default:
+          return <AlertCircle className={`${iconClass} text-blue-400`} />;
+      }
+    } else {
+      switch (type) {
+        case "success":
+          return <CheckCircle className={`${iconClass} text-emerald-500`} />;
+        case "error":
+          return <XCircle className={`${iconClass} text-red-500`} />;
+        case "warning":
+          return <AlertCircle className={`${iconClass} text-amber-500`} />;
+        case "info":
+          return <Bell className={`${iconClass} text-blue-500`} />;
+        default:
+          return <AlertCircle className={`${iconClass} text-blue-500`} />;
+      }
+    }
+  };
+
+  return (
+    <div
+      className={`fixed top-10 left-1/2 -translate-x-1/2 z-50 transform transition-all duration-500 ease-out
+        ${
+          isVisible
+            ? "translate-y-0 opacity-100 scale-100"
+            : "-translate-y-full opacity-0 scale-95"
+        }`}
+    >
+      <div className={getAlertStyles()}>
+        {getIcon()}
+        <div className="flex-1">
+          <p className="font-semibold text-base">{message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className={`ml-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/20
+                      ${
+                        isDarkMode
+                          ? "dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700/50"
+                          : ""
+                      }`}
+        >
+          <XCircle className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const useSystemAlert = () => {
+  const [alertState, setAlertState] = useState(null);
+
+  const showAlert = useCallback(
+    (message, type = "success", duration = 4000, isDarkMode = false) => {
+      setAlertState({ message, type, isVisible: true, isDarkMode });
+      setTimeout(() => {
+        setAlertState((prev) => (prev ? { ...prev, isVisible: false } : null));
+      }, duration);
+      setTimeout(() => {
+        setAlertState(null);
+      }, duration + 300);
+    },
+    []
+  );
+
+  const hideAlert = useCallback(() => {
+    setAlertState((prev) => (prev ? { ...prev, isVisible: false } : null));
+    setTimeout(() => {
+      setAlertState(null);
+    }, 300);
+  }, []);
+
+  return { alert: alertState, showAlert, hideAlert };
 };
 
 export default function AdminPage() {
@@ -126,14 +249,14 @@ export default function AdminPage() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Initialize dark mode from localStorage or system preference
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
       return savedTheme === "dark";
     }
     return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
-  const [showSplash, setShowSplash] = useState(true); // State for splash screen
+  const [showSplash, setShowSplash] = useState(true);
+  const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert(); // Use SystemAlert for AdminPage
   const navigate = useNavigate();
 
   // Inject custom styles into the document head
@@ -162,13 +285,12 @@ export default function AdminPage() {
     }
   }, [isDarkMode]);
 
-  // Control splash screen visibility
+  // Control splash screen visibility and check for persistent login notification
   useEffect(() => {
-    const minSplashTime = 1500; // Minimum time for splash screen in ms
+    const minSplashTime = 1500;
     const startTime = Date.now();
 
     // Simulate initial loading, replace with actual data fetching if needed
-    // For now, it just waits for a minimum time.
     const timer = setTimeout(() => {
       const elapsedTime = Date.now() - startTime;
       const remainingTime = minSplashTime - elapsedTime;
@@ -178,10 +300,22 @@ export default function AdminPage() {
       } else {
         setShowSplash(false);
       }
-    }, 100); // A small initial delay before starting the splash timer
+
+      // Check for persistent login notification after splash screen
+      const storedNotification = sessionStorage.getItem("loginNotification");
+      if (storedNotification) {
+        try {
+          const { message, type } = JSON.parse(storedNotification);
+          showAlert(message, type, 4000, isDarkMode); // Display the alert
+          sessionStorage.removeItem("loginNotification"); // Clear it after displaying
+        } catch (e) {
+          console.error("Failed to parse stored notification:", e);
+        }
+      }
+    }, 100);
 
     return () => clearTimeout(timer);
-  }, []); // Run only once on mount
+  }, [showAlert, isDarkMode]); // Depend on showAlert and isDarkMode
 
   // Group menu items into sections
   const menuSections = [
@@ -202,12 +336,14 @@ export default function AdminPage() {
         { id: "correction", label: "Correction Request", icon: ClipboardList },
       ],
     },
-    // Add more sections as needed
     {
       title: "Settings",
       items: [
-        // Example for future settings
-        // { id: "profile", label: "Profile", icon: User },
+        {
+          id: "manage-request-types",
+          label: "Manage Request Types",
+          icon: ListChecks,
+        },
       ],
     },
   ];
@@ -219,7 +355,6 @@ export default function AdminPage() {
   };
 
   return (
-    // Main container. The 'dark' class is applied here for themeing.
     <div
       className={`flex flex-col h-screen overflow-hidden lg:flex-row ${
         isDarkMode
@@ -229,6 +364,17 @@ export default function AdminPage() {
     >
       {/* Loading Splash Screen */}
       <LoadingSplash isVisible={showSplash} isDarkMode={isDarkMode} />
+
+      {/* System Alert Notification */}
+      {systemAlert && (
+        <SystemAlert
+          message={systemAlert.message}
+          type={systemAlert.type}
+          onClose={hideAlert}
+          isVisible={systemAlert.isVisible}
+          isDarkMode={isDarkMode}
+        />
+      )}
 
       {/* Main Content - hidden during splash */}
       <div
@@ -700,6 +846,19 @@ export default function AdminPage() {
                 <AdminCorrectionList isDarkMode={isDarkMode} />
               </div>
             )}
+            {activeItem === "manage-request-types" && (
+              <div
+                className={`${
+                  isDarkMode
+                    ? "bg-gray-800 text-gray-100"
+                    : "bg-white text-gray-900"
+                } rounded-xl shadow-lg border ${
+                  isDarkMode ? "border-gray-700" : "border-gray-100"
+                } p-4 sm:p-6 lg:p-8`}
+              >
+                <AdminRequestTypes isDarkMode={isDarkMode} />
+              </div>
+            )}
           </main>
         </div>
 
@@ -715,7 +874,6 @@ export default function AdminPage() {
             .flatMap((section) => section.items)
             .slice(0, 4)
             .map((item) => {
-              // Display first 4 items for conciseness
               const Icon = item.icon;
               const isActive = activeItem === item.id;
               return (
@@ -752,7 +910,6 @@ export default function AdminPage() {
                 </button>
               );
             })}
-          {/* "More" button to open the full mobile menu */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
             className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 text-sm font-medium

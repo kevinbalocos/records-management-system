@@ -13,6 +13,8 @@ const userRoutes = require("./routes/userRoutes");
 const requestRoutes = require("./routes/requestRoutes");
 const indigencyRoutes = require("./routes/indigencyRoutes");
 const correctionRoutes = require("./routes/correctionRoutes");
+const requestTypeRoutes = require("./routes/requestTypeRoutes"); 
+
 
 const app = express();
 const server = http.createServer(app); 
@@ -46,6 +48,7 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/indigency", indigencyRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api", correctionRoutes);
+app.use("/api/request-types", requestTypeRoutes); // <--- NEW ROUTE
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
