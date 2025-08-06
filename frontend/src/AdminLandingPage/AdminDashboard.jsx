@@ -14,9 +14,9 @@ import {
   List,
   FolderOpen,
   Upload,
-  PieChart as PieChartIcon, // Renamed to avoid conflict with Recharts PieChart
-  BarChart3, // For the bar chart icon
-  LineChart as LineChartIcon, // Renamed for line chart icon
+  PieChart as PieChartIcon,
+  BarChart3,
+  LineChart as LineChartIcon,
   TrendingUp,
   Activity,
   Users,
@@ -49,38 +49,81 @@ import {
 const socket = io("http://localhost:5000");
 
 // A reusable Toast component for user notifications
-const Toast = ({ message, type, onClose, isVisible }) => {
+const Toast = ({ message, type, onClose, isVisible, isDarkMode }) => {
+  // Added isDarkMode prop
   const getToastStyles = () => {
     const baseStyles =
       "flex items-center p-4 rounded-lg shadow-lg border-l-4 min-w-80 max-w-md";
 
-    switch (type) {
-      case "success":
-        return `${baseStyles} bg-green-50 border-green-500 text-green-800`;
-      case "error":
-        return `${baseStyles} bg-red-50 border-red-500 text-red-800`;
-      case "warning":
-        return `${baseStyles} bg-yellow-50 border-yellow-500 text-yellow-800`;
-      default:
-        return `${baseStyles} bg-blue-50 border-blue-500 text-blue-800`;
+    // Dynamic styles based on isDarkMode prop
+    let typeStyles = "";
+    if (isDarkMode) {
+      switch (type) {
+        case "success":
+          typeStyles = "bg-green-900 border-green-600 text-green-200";
+          break;
+        case "error":
+          typeStyles = "bg-red-900 border-red-600 text-red-200";
+          break;
+        case "warning":
+          typeStyles = "bg-yellow-900 border-yellow-600 text-yellow-200";
+          break;
+        default:
+          typeStyles = "bg-blue-900 border-blue-600 text-blue-200";
+      }
+    } else {
+      switch (type) {
+        case "success":
+          typeStyles = "bg-green-50 border-green-500 text-green-800";
+          break;
+        case "error":
+          typeStyles = "bg-red-50 border-red-500 text-red-800";
+          break;
+        case "warning":
+          typeStyles = "bg-yellow-50 border-yellow-500 text-yellow-800";
+          break;
+        default:
+          typeStyles = "bg-blue-50 border-blue-500 text-blue-800";
+      }
     }
+    return `${baseStyles} ${typeStyles}`;
   };
 
   const getIcon = () => {
+    // Icons also adapt based on isDarkMode
+    const iconColor = isDarkMode ? "text-gray-400" : "text-gray-500";
     switch (type) {
       case "success":
         return (
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+          <CheckCircle
+            className={`w-5 h-5 text-green-500 ${
+              isDarkMode ? "dark:text-green-400" : ""
+            } mr-3 flex-shrink-0`}
+          />
         );
       case "error":
-        return <XCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />;
+        return (
+          <XCircle
+            className={`w-5 h-5 text-red-500 ${
+              isDarkMode ? "dark:text-red-400" : ""
+            } mr-3 flex-shrink-0`}
+          />
+        );
       case "warning":
         return (
-          <AlertCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
+          <AlertCircle
+            className={`w-5 h-5 text-yellow-500 ${
+              isDarkMode ? "dark:text-yellow-400" : ""
+            } mr-3 flex-shrink-0`}
+          />
         );
       default:
         return (
-          <AlertCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
+          <AlertCircle
+            className={`w-5 h-5 text-blue-500 ${
+              isDarkMode ? "dark:text-blue-400" : ""
+            } mr-3 flex-shrink-0`}
+          />
         );
     }
   };
@@ -98,7 +141,9 @@ const Toast = ({ message, type, onClose, isVisible }) => {
         </div>
         <button
           onClick={onClose}
-          className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className={`ml-4 text-gray-400 hover:text-gray-600 transition-colors ${
+            isDarkMode ? "dark:text-gray-500 dark:hover:text-gray-300" : ""
+          }`}
         >
           <XCircle className="w-4 h-4" />
         </button>
@@ -111,7 +156,6 @@ const Toast = ({ message, type, onClose, isVisible }) => {
 const useToast = () => {
   const [toast, setToast] = useState(null);
 
-  // Memoize showToast and hideToast to prevent re-creation on every render
   const showToast = useCallback(
     (message, type = "success", duration = 4000) => {
       setToast({ message, type, isVisible: true });
@@ -123,14 +167,14 @@ const useToast = () => {
       }, duration + 300);
     },
     []
-  ); // Dependencies are empty as setToast is stable
+  );
 
   const hideToast = useCallback(() => {
     setToast((prev) => (prev ? { ...prev, isVisible: false } : null));
     setTimeout(() => {
       setToast(null);
     }, 300);
-  }, []); // Dependencies are empty as setToast is stable
+  }, []);
 
   return { toast, showToast, hideToast };
 };
@@ -144,26 +188,44 @@ const statusClasses = {
 
 // Enhanced color palettes
 const CHART_COLORS = {
-  primary: ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a7f3d0"],
-  gradient: ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"],
-  warm: ["#f59e0b", "#f97316", "#ef4444", "#ec4899", "#8b5cf6"],
-  cool: ["#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"],
-  professional: ["#1e293b", "#374151", "#6b7280", "#9ca3af", "#d1d5db"],
+  primary: ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a7f3d0"], // Teal/Cyan shades
+  gradient: ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"], // Indigo/Purple shades
+  warm: ["#f59e0b", "#f97316", "#ef4444", "#ec4899", "#8b5cf6"], // Orange/Red/Pink/Purple
+  cool: ["#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"], // Green/Cyan/Blue/Indigo/Purple
+  professional: ["#1e293b", "#374151", "#6b7280", "#9ca3af", "#d1d5db"], // Gray shades
 };
 
 // Custom Tooltip Component
-const CustomTooltip = ({ active, payload, label, formatter }) => {
+const CustomTooltip = ({ active, payload, label, formatter, isDarkMode }) => {
+  // Added isDarkMode prop
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-2xl border border-gray-200/50 min-w-32">
-        <p className="text-gray-900 font-semibold mb-2">{label}</p>
+      <div
+        className={`backdrop-blur-sm p-4 rounded-xl shadow-2xl border min-w-32
+                      ${
+                        isDarkMode
+                          ? "bg-gray-800/95 border-gray-700/50"
+                          : "bg-white/95 border-gray-200/50"
+                      }`}
+      >
+        <p
+          className={`font-semibold mb-2 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          {label}
+        </p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center space-x-2">
             <div
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: entry.color || entry.fill }}
             />
-            <span className="text-gray-700 text-sm">
+            <span
+              className={`text-sm ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               {entry.name}:{" "}
               <span className="font-semibold">
                 {formatter ? formatter(entry.value) : entry.value}
@@ -178,7 +240,8 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
 };
 
 // Custom Legend Component
-const CustomLegend = ({ payload }) => {
+const CustomLegend = ({ payload, isDarkMode }) => {
+  // Added isDarkMode prop
   return (
     <div className="flex flex-wrap justify-center gap-4 mt-4">
       {payload.map((entry, index) => (
@@ -187,7 +250,11 @@ const CustomLegend = ({ payload }) => {
             className="w-3 h-3 rounded-full shadow-sm"
             style={{ backgroundColor: entry.color || entry.payload.fill }}
           />
-          <span className="text-gray-700 text-sm font-medium">
+          <span
+            className={`text-sm font-medium ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
             {entry.value}
           </span>
         </div>
@@ -203,17 +270,36 @@ const ChartContainer = ({
   children,
   className = "",
   actions = null,
+  isDarkMode, // Added isDarkMode prop
 }) => (
   <div
-    className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${className}`}
+    className={`rounded-2xl shadow-lg border overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
+                ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 hover:shadow-2xl"
+                    : "bg-white border-gray-100"
+                } ${className}`}
   >
-    <div className="p-6 pb-4 bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/50">
+    <div
+      className={`p-6 pb-4 bg-gradient-to-r border-b
+                    ${
+                      isDarkMode
+                        ? "from-gray-700/50 to-gray-800/50 border-gray-700"
+                        : "from-gray-50 to-gray-100/50 border-gray-200/50"
+                    }`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-md">
             <Icon className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <h3
+            className={`text-xl font-bold ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {title}
+          </h3>
         </div>
         {actions && (
           <div className="flex items-center space-x-2">{actions}</div>
@@ -225,7 +311,8 @@ const ChartContainer = ({
 );
 
 // Main Admin Dashboard component
-const AdminDashboard = () => {
+const AdminDashboard = ({ isDarkMode }) => {
+  // Accept isDarkMode prop
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [userInfo, setUserInfo] = useState({});
@@ -417,8 +504,8 @@ const AdminDashboard = () => {
         {
           name: "Remaining",
           value: 100 - completionPercentage,
-          fill: "#e0e0e0",
-        }, // Grey for remaining
+          fill: "#e0e0e0", // Grey for remaining
+        },
       ]);
     } else {
       setCompletionRateData([{ name: "No Data", value: 100, fill: "#e0e0e0" }]); // Show 100% grey if no data
@@ -569,7 +656,8 @@ const AdminDashboard = () => {
   };
 
   // Component for the breakdown modal
-  const AssistanceBreakdownModal = ({ type, data, onClose }) => {
+  const AssistanceBreakdownModal = ({ type, data, onClose, isDarkMode }) => {
+    // Added isDarkMode prop
     if (!data) return null; // Don't render if no data
 
     // Process data for municipality chart
@@ -599,14 +687,27 @@ const AdminDashboard = () => {
 
     return (
       <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4 overflow-y-auto">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl p-8 transform transition-all duration-300 scale-95 hover:scale-100">
+        <div
+          className={`rounded-2xl shadow-2xl w-full max-w-4xl p-8 transform transition-all duration-300 scale-95 hover:scale-100
+                      ${
+                        isDarkMode
+                          ? "bg-gray-800 text-gray-100 border-gray-700"
+                          : "bg-white text-gray-900"
+                      }`}
+        >
           <div className="flex justify-between items-start mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3
+              className={`text-2xl font-bold ${
+                isDarkMode ? "text-white" : "text-gray-900"
+              }`}
+            >
               Breakdown for {assistanceTypeMap[type] || type}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className={`text-gray-400 hover:text-gray-600 ${
+                isDarkMode ? "dark:text-gray-500 dark:hover:text-gray-300" : ""
+              }`}
             >
               <XCircle className="w-6 h-6" />
             </button>
@@ -614,7 +715,11 @@ const AdminDashboard = () => {
 
           <div className="space-y-8">
             {/* Breakdown by Municipality */}
-            <ChartContainer title="Requests by Municipality" icon={BarChart3}>
+            <ChartContainer
+              title="Requests by Municipality"
+              icon={BarChart3}
+              isDarkMode={isDarkMode}
+            >
               <ResponsiveContainer width="100%" height={250}>
                 {municipalityData.length > 0 ? (
                   <BarChart
@@ -623,7 +728,7 @@ const AdminDashboard = () => {
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="#e5e7eb"
+                      stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
                       opacity={0.6}
                     />
                     <XAxis
@@ -631,13 +736,22 @@ const AdminDashboard = () => {
                       angle={-30}
                       textAnchor="end"
                       height={60}
-                      tick={{ fill: "#6b7280", fontSize: 11 }}
+                      tick={{
+                        fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                        fontSize: 11,
+                      }} // Conditional tick color
                     />
-                    <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} />
+                    <YAxis
+                      tick={{
+                        fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                        fontSize: 12,
+                      }} // Conditional tick color
+                    />
                     <Tooltip
                       content={
                         <CustomTooltip
                           formatter={(value) => `${value} requests`}
+                          isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
                         />
                       }
                     />
@@ -649,7 +763,11 @@ const AdminDashboard = () => {
                     />
                   </BarChart>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div
+                    className={`flex items-center justify-center h-full ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
                     No municipality data available.
                   </div>
                 )}
@@ -658,7 +776,11 @@ const AdminDashboard = () => {
 
             {/* Breakdown by Demographics (Gender, PWD, LGBT, Senior) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <ChartContainer title="Requests by Gender" icon={Users}>
+              <ChartContainer
+                title="Requests by Gender"
+                icon={Users}
+                isDarkMode={isDarkMode}
+              >
                 <ResponsiveContainer width="100%" height={250}>
                   {genderData.some((d) => d.value > 0) ? ( // Check if any gender has data
                     <PieChart>
@@ -687,13 +809,21 @@ const AdminDashboard = () => {
                         content={
                           <CustomTooltip
                             formatter={(value) => `${value} requests`}
+                            isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
                           />
                         }
                       />
-                      <Legend content={<CustomLegend />} />
+                      <Legend
+                        content={<CustomLegend isDarkMode={isDarkMode} />}
+                      />{" "}
+                      {/* Pass isDarkMode to legend */}
                     </PieChart>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div
+                      className={`flex items-center justify-center h-full ${
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
                       No gender data available.
                     </div>
                   )}
@@ -703,6 +833,7 @@ const AdminDashboard = () => {
               <ChartContainer
                 title="Requests by Special Categories"
                 icon={List}
+                isDarkMode={isDarkMode} // Pass isDarkMode prop
               >
                 <ResponsiveContainer width="100%" height={250}>
                   {specialCategoriesData.some((d) => d.value > 0) ? ( // Check if any category has data
@@ -713,24 +844,31 @@ const AdminDashboard = () => {
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#e5e7eb"
+                        stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
                         opacity={0.6}
                       />
                       <XAxis
                         type="number"
-                        tick={{ fill: "#6b7280", fontSize: 12 }}
+                        tick={{
+                          fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                          fontSize: 12,
+                        }} // Conditional tick color
                       />
                       <YAxis
                         type="category"
                         dataKey="name"
                         tickLine={false}
                         axisLine={false}
-                        tick={{ fill: "#6b7280", fontSize: 12 }}
+                        tick={{
+                          fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                          fontSize: 12,
+                        }} // Conditional tick color
                       />
                       <Tooltip
                         content={
                           <CustomTooltip
                             formatter={(value) => `${value} requests`}
+                            isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
                           />
                         }
                       />
@@ -745,7 +883,11 @@ const AdminDashboard = () => {
                       </Bar>
                     </BarChart>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div
+                      className={`flex items-center justify-center h-full ${
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
                       No special category data available.
                     </div>
                   )}
@@ -759,7 +901,14 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-blue-50">
+    <div
+      className={`min-h-screen bg-gradient-to-br
+                    ${
+                      isDarkMode
+                        ? "from-gray-950 via-gray-900 to-blue-950"
+                        : "from-gray-50 via-gray-100 to-blue-50"
+                    }`}
+    >
       <style jsx>{`
         @keyframes fadeIn {
           from {
@@ -796,20 +945,36 @@ const AdminDashboard = () => {
           type={toast.type}
           onClose={hideToast}
           isVisible={toast.isVisible}
+          isDarkMode={isDarkMode} // Pass isDarkMode to Toast
         />
       )}
 
       {/* Modal for Request Details */}
       {isModalOpen && selectedRequest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 transform transition-all duration-300 scale-95 hover:scale-100">
+          <div
+            className={`rounded-xl shadow-2xl w-full max-w-2xl p-8 transform transition-all duration-300 scale-95 hover:scale-100
+                        ${
+                          isDarkMode
+                            ? "bg-gray-800 text-gray-100 border-gray-700"
+                            : "bg-white text-gray-900"
+                        }`}
+          >
             <div className="flex justify-between items-start mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3
+                className={`text-2xl font-bold ${
+                  isDarkMode ? "text-white" : "text-gray-900"
+                }`}
+              >
                 Request Details
               </h3>
               <button
                 onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600"
+                className={`text-gray-400 hover:text-gray-600 ${
+                  isDarkMode
+                    ? "dark:text-gray-500 dark:hover:text-gray-300"
+                    : ""
+                }`}
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -817,19 +982,41 @@ const AdminDashboard = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <p>
-                  <span className="font-semibold text-gray-700">Resident:</span>{" "}
+                  <span
+                    className={`font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Resident:
+                  </span>{" "}
                   {selectedRequest.resident_name ||
                     `ID: ${selectedRequest.user_id}`}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Type:</span>{" "}
+                  <span
+                    className={`font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Type:
+                  </span>{" "}
                   {selectedRequest.type}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Status:</span>{" "}
+                  <span
+                    className={`font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    Status:
+                  </span>{" "}
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
                       statusClasses[selectedRequest.status]
+                    } ${
+                      isDarkMode
+                        ? "dark:text-yellow-200 dark:bg-yellow-900 dark:border-yellow-700"
+                        : ""
                     }`}
                   >
                     {getStatusIcon(selectedRequest.status)}
@@ -837,28 +1024,57 @@ const AdminDashboard = () => {
                   </span>
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">
+                  <span
+                    className={`font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Submitted:
                   </span>{" "}
                   {moment(selectedRequest.created_at).format("LLL")}
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-gray-700 mb-2">Details:</p>
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p className="text-gray-800">{selectedRequest.details}</p>
+                <p
+                  className={`font-semibold mb-2 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-700"
+                  }`}
+                >
+                  Details:
+                </p>
+                <div
+                  className={`p-4 rounded-lg ${
+                    isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                  }`}
+                >
+                  <p
+                    className={`${
+                      isDarkMode ? "text-gray-200" : "text-gray-800"
+                    }`}
+                  >
+                    {selectedRequest.details}
+                  </p>
                 </div>
               </div>
               {selectedRequest.file_path && (
                 <div>
-                  <p className="font-semibold text-gray-700 mb-2">
+                  <p
+                    className={`font-semibold mb-2 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Resident's Supporting Document:
                   </p>
                   <a
                     href={`http://localhost:5000/uploads/${selectedRequest.file_path}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center p-3 border border-gray-300 rounded-lg text-teal-600 hover:bg-teal-50 transition-colors"
+                    className={`flex items-center p-3 border rounded-lg text-teal-600 hover:bg-teal-50 transition-colors
+                               ${
+                                 isDarkMode
+                                   ? "border-gray-600 text-teal-400 hover:bg-gray-700"
+                                   : "border-gray-300"
+                               }`}
                   >
                     <FolderOpen className="w-5 h-5 mr-3" />
                     View Resident Document
@@ -867,14 +1083,23 @@ const AdminDashboard = () => {
               )}
               {selectedRequest.admin_file_path && (
                 <div>
-                  <p className="font-semibold text-gray-700 mb-2">
+                  <p
+                    className={`font-semibold mb-2 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Admin's Uploaded Document:
                   </p>
                   <a
                     href={`http://localhost:5000/uploads/${selectedRequest.admin_file_path}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center p-3 border border-gray-300 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+                    className={`flex items-center p-3 border rounded-lg text-blue-600 hover:bg-blue-50 transition-colors
+                               ${
+                                 isDarkMode
+                                   ? "border-gray-600 text-blue-400 hover:bg-gray-700"
+                                   : "border-gray-300"
+                               }`}
                   >
                     <FolderOpen className="w-5 h-5 mr-3" />
                     View Admin Document
@@ -883,8 +1108,16 @@ const AdminDashboard = () => {
               )}
 
               {selectedRequest.status === "pending" && (
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <p className="font-semibold text-gray-700 mb-2">
+                <div
+                  className={`mt-6 pt-4 border-t ${
+                    isDarkMode ? "border-gray-700" : "border-gray-200"
+                  }`}
+                >
+                  <p
+                    className={`font-semibold mb-2 ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Upload Admin Response File (Optional, marks as Completed):
                   </p>
                   <div className="flex items-center space-x-3">
@@ -892,7 +1125,12 @@ const AdminDashboard = () => {
                       type="file"
                       ref={fileInputRef}
                       onChange={(e) => setAdminFile(e.target.files[0])}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                      className={`flex-1 px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100
+                                 ${
+                                   isDarkMode
+                                     ? "bg-gray-700 border-gray-600 text-gray-200 focus:ring-teal-700 focus:border-teal-700 file:bg-teal-800 file:text-teal-100 hover:file:bg-teal-700"
+                                     : "border-gray-300"
+                                 }`}
                     />
                     <button
                       onClick={handleAdminFileUpload}
@@ -909,6 +1147,15 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {isBreakdownModalOpen && breakdownData && (
+        <AssistanceBreakdownModal
+          type={selectedAssistanceType}
+          data={breakdownData}
+          onClose={() => setIsBreakdownModalOpen(false)}
+          isDarkMode={isDarkMode} // Pass isDarkMode to breakdown modal
+        />
+      )}
+
       <div className={`p-6 space-y-8 ${animationClass}`}>
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -917,451 +1164,451 @@ const AdminDashboard = () => {
               title: "Total Requests",
               value: stats.total || 0,
               icon: FileText,
-              color: "from-blue-500 to-blue-600",
-              bg: "from-blue-50 to-blue-100",
+              color: "bg-blue-500",
+              darkColor: "dark:bg-blue-700",
             },
             {
-              title: "Pending",
+              title: "Pending Requests",
               value: stats.pending || 0,
               icon: Clock,
-              color: "from-amber-500 to-orange-500",
-              bg: "from-amber-50 to-orange-100",
+              color: "bg-yellow-500",
+              darkColor: "dark:bg-yellow-700",
             },
             {
-              title: "Completed",
+              title: "Completed Requests",
               value: stats.completed || 0,
               icon: CheckCircle,
-              color: "from-green-500 to-emerald-500",
-              bg: "from-green-50 to-emerald-100",
+              color: "bg-green-500",
+              darkColor: "dark:bg-green-700",
             },
             {
-              title: "This Month",
-              value: stats.thisMonth || 0,
-              icon: CalendarDays,
-              color: "from-purple-500 to-indigo-500",
-              bg: "from-purple-50 to-indigo-100",
+              title: "Rejected Requests",
+              value: stats.rejected || 0,
+              icon: XCircle,
+              color: "bg-red-500",
+              darkColor: "dark:bg-red-700",
             },
           ].map((stat, index) => (
             <div
               key={index}
-              className={`bg-gradient-to-br ${stat.bg} p-6 rounded-2xl shadow-lg border border-white/50 transform hover:scale-105 transition-all duration-300 hover:shadow-xl`}
+              className={`rounded-2xl shadow-lg p-6 flex items-center space-x-4 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
+                          ${
+                            isDarkMode
+                              ? "bg-gray-800 border-gray-700 text-gray-100"
+                              : "bg-white border-gray-100"
+                          }`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-semibold mb-2">
-                    {stat.title}
-                  </p>
-                  <p className="text-4xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
-                  <div className="flex items-center mt-2 text-sm text-green-600">
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    <span>+12% from last month</span> {/* Placeholder text */}
-                  </div>
-                </div>
-                <div
-                  className={`p-4 bg-gradient-to-br ${stat.color} rounded-2xl shadow-lg`}
+              <div
+                className={`p-3 rounded-full ${stat.color} ${stat.darkColor} bg-opacity-80 shadow-md`}
+              >
+                <stat.icon className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p
+                  className={`text-sm font-medium ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
                 >
-                  <stat.icon className="w-8 h-8 text-white" />
-                </div>
+                  {stat.title}
+                </p>
+                <p
+                  className={`text-3xl font-bold ${
+                    isDarkMode ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {stat.value}
+                </p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Chart Filter Bar */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Filter className="w-5 h-5 text-gray-600" />
-                <span className="text-gray-700 font-medium">View:</span>
-              </div>
-              <div className="flex space-x-2">
-                {["all", "type", "status", "trends"].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveChart(filter)}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                      activeChart === filter
-                        ? "bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-md"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Requests by Type (Pie Chart) */}
+          <ChartContainer
+            title="Requests by Type"
+            icon={PieChartIcon}
+            className="col-span-1"
+            isDarkMode={isDarkMode} // Pass isDarkMode
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              {requestsByTypeData.length > 0 ? (
+                <PieChart>
+                  <Pie
+                    data={requestsByTypeData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    animationDuration={800}
+                    onClick={handlePieSliceClick} // Add click handler
+                    cursor="pointer" // Indicate it's clickable
+                  >
+                    {requestsByTypeData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke="#fff"
+                        strokeWidth={2}
+                        className="transition-all duration-200 hover:scale-105"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) => `${value} requests`}
+                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
+                      />
+                    }
+                  />
+                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
+                  {/* Pass isDarkMode to legend */}
+                </PieChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No data for Requests by Type.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Requests by Status (Bar Chart) */}
+          <ChartContainer
+            title="Requests by Status"
+            icon={BarChart3}
+            className="col-span-1"
+            isDarkMode={isDarkMode} // Pass isDarkMode
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              {requestsByStatusData.length > 0 ? (
+                <BarChart
+                  data={requestsByStatusData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
+                    opacity={0.6}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }} // Conditional tick color
+                  />
+                  <YAxis
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }} // Conditional tick color
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) => `${value} requests`}
+                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
+                      />
+                    }
+                  />
+                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
+                  {/* Pass isDarkMode to legend */}
+                  <Bar
+                    dataKey="count"
+                    barSize={40}
+                    radius={[8, 8, 0, 0]}
+                    animationDuration={800}
+                  >
+                    {requestsByStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No data for Requests by Status.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Requests Over Time (Line Chart) */}
+          <ChartContainer
+            title="Requests Over Time (Last 12 Months)"
+            icon={LineChartIcon}
+            className="lg:col-span-2"
+            isDarkMode={isDarkMode} // Pass isDarkMode
+          >
+            <ResponsiveContainer width="100%" height={350}>
+              {requestsOverTimeData.length > 0 ? (
+                <LineChart
+                  data={requestsOverTimeData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
+                    opacity={0.6}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }} // Conditional tick color
+                  />
+                  <YAxis
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }} // Conditional tick color
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) => `${value} requests`}
+                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
+                      />
+                    }
+                  />
+                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
+                  {/* Pass isDarkMode to legend */}
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke={CHART_COLORS.gradient[2]}
+                    strokeWidth={3}
+                    dot={<CustomDot fill={CHART_COLORS.gradient[2]} />}
+                    activeDot={{ r: 8, fill: CHART_COLORS.gradient[0] }}
+                    animationDuration={800}
+                  />
+                </LineChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No data for Requests Over Time.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Overall Completion Rate (Radial Bar Chart) */}
+          <ChartContainer
+            title="Overall Completion Rate"
+            icon={TrendingUp}
+            className="col-span-1"
+            isDarkMode={isDarkMode} // Pass isDarkMode
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              {completionRateData.length > 0 &&
+              completionRateData[0].value !== 100 ? ( // Only show chart if there's actual completion data
+                <RadialBarChart
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="40%"
+                  outerRadius="80%"
+                  barSize={20}
+                  data={completionRateData}
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <RadialBar
+                    minAngle={15}
+                    label={{
+                      position: "insideStart",
+                      fill: "#fff",
+                      formatter: (value) => `${value.toFixed(0)}%`,
+                    }}
+                    background
+                    clockWise
+                    dataKey="value"
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) => `${value.toFixed(1)}%`}
+                        isDarkMode={isDarkMode}
+                      /> // Pass isDarkMode to tooltip
+                    }
+                  />
+                  <Legend
+                    iconSize={10}
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    content={<CustomLegend isDarkMode={isDarkMode} />} // Pass isDarkMode to legend
+                  />
+                </RadialBarChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No completion data available or 0 total requests.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Recent Activities/Requests (Table) */}
+          <ChartContainer
+            title="Recent Activities"
+            icon={Activity}
+            className="lg:col-span-2"
+            isDarkMode={isDarkMode} // Pass isDarkMode
+          >
+            <div className="overflow-x-auto">
+              {requests.length > 0 ? (
+                <table
+                  className={`min-w-full divide-y ${
+                    isDarkMode ? "divide-gray-700" : "divide-gray-200"
+                  }`}
+                >
+                  <thead
+                    className={`${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}
+                  >
+                    <tr>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Resident
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Type
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Date
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={`${
+                      isDarkMode
+                        ? "bg-gray-800 divide-gray-700"
+                        : "bg-white divide-gray-200"
                     }`}
                   >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl text-gray-700 hover:from-gray-200 hover:to-gray-300 transition-all duration-200">
-              <Download className="w-4 h-4" />
-              <span>Export</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Enhanced Charts Grid */}
-        <div className="space-y-8">
-          {/* Row 1: Main Charts */}
-          {(activeChart === "all" ||
-            activeChart === "type" ||
-            activeChart === "status") && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Enhanced Pie Chart */}
-              {(activeChart === "all" || activeChart === "type") && (
-                <ChartContainer
-                  title="Requests by Type"
-                  icon={PieChartIcon}
-                  actions={
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-gray-500">Live Data</span>
-                    </div>
-                  }
-                >
-                  <ResponsiveContainer width="100%" height={350}>
-                    {requestsByTypeData.length > 0 ? (
-                      <PieChart>
-                        <defs>
-                          {requestsByTypeData.map((entry, index) => (
-                            <linearGradient
-                              key={index}
-                              id={`gradient-${index}`}
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="0%"
-                                stopColor={entry.color}
-                                stopOpacity={0.8}
-                              />
-                              <stop
-                                offset="100%"
-                                stopColor={entry.color}
-                                stopOpacity={0.6}
-                              />
-                            </linearGradient>
-                          ))}
-                        </defs>
-                        <Pie
-                          data={requestsByTypeData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={120}
-                          innerRadius={60}
-                          paddingAngle={3}
-                          dataKey="value"
-                          animationBegin={0}
-                          animationDuration={1000}
-                          onCellClick={handlePieSliceClick} // Add click handler here
-                          cursor="pointer" // Indicate it's clickable
-                        >
-                          {requestsByTypeData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={`url(#gradient-${index})`}
-                              stroke="#fff"
-                              strokeWidth={2}
-                              className="hover:opacity-80 transition-opacity duration-200"
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          content={
-                            <CustomTooltip
-                              formatter={(value) => `${value} requests`}
-                            />
-                          }
-                        />
-                        <Legend content={<CustomLegend />} />
-                      </PieChart>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        No data available for Requests by Type.
-                      </div>
-                    )}
-                  </ResponsiveContainer>
-                  <div className="text-center mt-4">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {stats.total || 0}
-                    </p>
-                    <p className="text-gray-600">Total Requests</p>
-                  </div>
-                </ChartContainer>
-              )}
-
-              {/* Enhanced Bar Chart */}
-              {(activeChart === "all" || activeChart === "status") && (
-                <ChartContainer title="Requests by Status" icon={BarChart3}>
-                  <ResponsiveContainer width="100%" height={350}>
-                    {requestsByStatusData.length > 0 ? (
-                      <BarChart
-                        data={requestsByStatusData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    {requests.slice(0, 5).map((request) => (
+                      <tr
+                        key={request.id}
+                        className={`${
+                          isDarkMode
+                            ? "hover:bg-gray-700/50"
+                            : "hover:bg-gray-50"
+                        }`}
                       >
-                        <defs>
-                          {/* Dynamic gradients based on data */}
-                          {requestsByStatusData.map((entry, index) => (
-                            <linearGradient
-                              key={`barGradient${index}`}
-                              id={`barGradient${index}`}
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                            >
-                              <stop
-                                offset="0%"
-                                stopColor={entry.fill}
-                                stopOpacity={0.8}
-                              />
-                              <stop
-                                offset="100%"
-                                stopColor={entry.fill}
-                                stopOpacity={0.4}
-                              />
-                            </linearGradient>
-                          ))}
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="#e5e7eb"
-                          opacity={0.6}
-                        />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{
-                            fill: "#6b7280",
-                            fontSize: 12,
-                            fontWeight: 500,
-                          }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#6b7280", fontSize: 12 }}
-                        />
-                        <Tooltip
-                          content={
-                            <CustomTooltip
-                              formatter={(value) => `${value} requests`}
-                            />
-                          }
-                        />
-                        <Bar
-                          dataKey="count"
-                          radius={[8, 8, 0, 0]}
-                          animationDuration={1000}
-                          animationBegin={200}
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                            isDarkMode ? "text-white" : "text-gray-900"
+                          }`}
                         >
-                          {requestsByStatusData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={`url(#barGradient${index})`}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        No data available for Requests by Status.
-                      </div>
-                    )}
-                  </ResponsiveContainer>
-                </ChartContainer>
-              )}
-            </div>
-          )}
-
-          {/* Row 2: Advanced Charts */}
-          {(activeChart === "all" || activeChart === "trends") && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Enhanced Line Chart */}
-              <div className="lg:col-span-2">
-                <ChartContainer
-                  title="Request Trends Over Time"
-                  icon={LineChartIcon}
+                          {request.resident_name || "N/A"}
+                        </td>
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          {request.type}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
+                              statusClasses[request.status]
+                            } ${
+                              isDarkMode
+                                ? "dark:text-teal-200 dark:bg-teal-900 dark:border-teal-700"
+                                : ""
+                            }`}
+                          >
+                            {getStatusIcon(request.status)}
+                            {request.status}
+                          </span>
+                        </td>
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          {moment(request.created_at).format("MMM D, YYYY")}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => openModal(request)}
+                            className={`text-teal-600 hover:text-teal-900 ${
+                              isDarkMode
+                                ? "dark:text-teal-400 dark:hover:text-teal-200"
+                                : ""
+                            }`}
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div
+                  className={`p-6 text-center ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
                 >
-                  <ResponsiveContainer width="100%" height={350}>
-                    {requestsOverTimeData.length > 0 ? (
-                      <AreaChart
-                        data={requestsOverTimeData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <defs>
-                          <linearGradient
-                            id="areaGradient1"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor={CHART_COLORS.cool[0]}
-                              stopOpacity={0.6}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor={CHART_COLORS.cool[0]}
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                          <linearGradient
-                            id="areaGradient2"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor={CHART_COLORS.cool[1]}
-                              stopOpacity={0.4}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor={CHART_COLORS.cool[1]}
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="#e5e7eb"
-                          opacity={0.6}
-                        />
-                        <XAxis
-                          dataKey="month"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#6b7280", fontSize: 11 }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "#6b7280", fontSize: 12 }}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend content={<CustomLegend />} />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          stroke={CHART_COLORS.cool[0]}
-                          strokeWidth={3}
-                          fill="url(#areaGradient1)"
-                          name="Total Requests"
-                          animationDuration={2000}
-                        />
-                      </AreaChart>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        No data available for Request Trends.
-                      </div>
-                    )}
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </div>
-
-              {/* Radial Progress Chart */}
-              <ChartContainer title="Completion Rate" icon={Activity}>
-                <ResponsiveContainer width="100%" height={350}>
-                  {completionRateData.length > 0 && stats.total > 0 ? (
-                    <RadialBarChart
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="20%"
-                      outerRadius="90%"
-                      data={completionRateData}
-                      startAngle={90}
-                      endAngle={-270}
-                    >
-                      <RadialBar
-                        dataKey="value"
-                        cornerRadius={10}
-                        background
-                        clockWise
-                        animationDuration={1500}
-                      />
-                      <Tooltip
-                        content={
-                          <CustomTooltip
-                            formatter={(value) => `${value.toFixed(1)}%`}
-                          />
-                        }
-                      />
-                      <Legend
-                        iconSize={12}
-                        wrapperStyle={{ paddingTop: "20px" }}
-                        content={<CustomLegend />}
-                      />
-                    </RadialBarChart>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      No data available for Completion Rate.
-                    </div>
-                  )}
-                </ResponsiveContainer>
-                <div className="text-center mt-4">
-                  <p className="text-3xl font-bold text-green-600">
-                    {(stats.total > 0
-                      ? (stats.completed / stats.total) * 100
-                      : 0
-                    ).toFixed(1)}
-                    %
-                  </p>
-                  <p className="text-gray-600">Overall Completion Rate</p>
+                  No recent activities to display.
                 </div>
-              </ChartContainer>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Performance Metrics */}
-        <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-2xl shadow-lg border border-teal-200/50 p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <Activity className="w-6 h-6 mr-3 text-teal-600" />
-            Performance Insights
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                <TrendingUp className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-2xl font-bold text-green-600">+24%</p>
-              <p className="text-gray-600">Response Time Improvement</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-2xl font-bold text-blue-600">95%</p>
-              <p className="text-gray-600">Resident Satisfaction</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-2xl font-bold text-purple-600">2.3 days</p>
-              <p className="text-gray-600">Average Resolution Time</p>
-            </div>
-          </div>
+          </ChartContainer>
         </div>
       </div>
-      {isBreakdownModalOpen && selectedAssistanceType && (
-        <AssistanceBreakdownModal
-          type={selectedAssistanceType}
-          data={breakdownData}
-          onClose={() => setIsBreakdownModalOpen(false)}
-        />
-      )}
     </div>
   );
 };
