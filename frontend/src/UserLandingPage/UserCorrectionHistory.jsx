@@ -19,7 +19,7 @@ export default function UserCorrectionHistory() {
     if (!userId) return;
 
     axios
-      .get(`http://localhost:5000/api/corrections/user/${userId}`)
+      .get(`${BASE_URL}/api/corrections/user/${userId}`)
       .then((res) => setRequests(res.data))
       .catch((err) => console.error(err));
   }, [userId]);
@@ -31,26 +31,43 @@ export default function UserCorrectionHistory() {
         <p className="text-sm text-gray-500">No requests found.</p>
       ) : (
         requests.map((r) => (
-          <div key={r.id} className="border p-2 mb-2 rounded">
+          <div key={r.id} className="border p-2 mb-2 rounded shadow-sm">
             <p>
-              <strong>Field:</strong> {r.field_to_correct}
+              <strong>Description:</strong> {r.description}
             </p>
             <p>
-              <strong>Status:</strong> {r.status}
+              <strong>Record Type:</strong> {r.record_type}
             </p>
-            {r.status === "approved" && (
+            <p>
+              <strong>Record ID:</strong> {r.record_id}
+            </p>
+            <p>
+              <strong>Status:</strong>{" "}
+              <span
+                className={`${
+                  r.status === "approved"
+                    ? "text-green-600"
+                    : r.status === "rejected"
+                    ? "text-red-600"
+                    : r.status === "completed"
+                    ? "text-blue-600"
+                    : "text-yellow-600"
+                } font-semibold`}
+              >
+                {r.status}
+              </span>
+            </p>
+
+            {r.admin_remarks && (
+              <p>
+                <strong>Admin Remarks:</strong> {r.admin_remarks}
+              </p>
+            )}
+
+            {r.status === "completed" && r.admin_file && (
               <div className="mt-2">
                 <a
-                  href={`${BASE_URL}/${r.pdf_path}`}
-                  className="text-green-600 underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Download Certificate
-                </a>
-                <br />
-                <a
-                  href={`${BASE_URL}/${r.original_pdf_path}`}
+                  href={`${BASE_URL}/uploads/admin_files/${r.admin_file}`}
                   className="text-green-600 underline"
                   target="_blank"
                   rel="noopener noreferrer"

@@ -5,9 +5,7 @@ const db = require("../db");
 
 exports.createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
-  // --- START: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
   const filePath = req.file ? `records_request/${req.file.filename}` : null;
-  // --- END: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
 
   if (!type || !details || !user_id) {
     return res.status(400).json({ message: "Missing required fields." });
@@ -99,9 +97,7 @@ exports.updateRequestStatus = (req, res) => {
 
 exports.uploadAdminFile = (req, res) => {
   const { id } = req.params;
-  // --- START: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
   const filePath = req.file ? `records_request/${req.file.filename}` : null;
-  // --- END: MODIFIED FILE PATH FOR NEW UPLOAD ROUTE ---
 
   if (!filePath) {
     return res.status(400).json({ message: "No file uploaded" });

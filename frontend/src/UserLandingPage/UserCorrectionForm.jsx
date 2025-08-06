@@ -4,13 +4,13 @@ import axios from "axios";
 export default function UserCorrectionForm() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const userId = storedUser?.id;
+
   const [form, setForm] = useState({
     record_type: "users",
     record_id: "",
-    field_to_correct: "",
-    current_value: "",
-    requested_value: "",
+    description: "",
   });
+
   const [proofFile, setProofFile] = useState(null);
   const [message, setMessage] = useState("");
 
@@ -32,6 +32,7 @@ export default function UserCorrectionForm() {
       await axios.post("http://localhost:5000/api/corrections", data);
       setMessage("Correction request submitted successfully.");
     } catch (err) {
+      console.error(err);
       setMessage("Failed to submit request.");
     }
   };
@@ -40,40 +41,46 @@ export default function UserCorrectionForm() {
     <div className="p-4 border rounded-md max-w-md mx-auto">
       <h2 className="text-lg font-bold mb-2">Document Correction Request</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <select
+          name="record_type"
+          value={form.record_type}
+          onChange={handleChange}
+          className="p-2 border"
+          required
+        >
+          <option value="">Select Record Type</option>
+          <option value="indigency">Indigency Certificate</option>
+          <option value="medical">Medical Assistance</option>
+          <option value="guarantee_letter">Guarantee Letter</option>
+          <option value="financial">Financial Assistance</option>
+        </select>
+
         <input
           name="record_id"
           placeholder="Record ID"
+          value={form.record_id}
           onChange={handleChange}
           className="p-2 border"
           required
         />
-        <input
-          name="field_to_correct"
-          placeholder="Field to correct (e.g., name)"
+
+        <textarea
+          name="description"
+          placeholder="Describe what needs to be corrected"
+          value={form.description}
           onChange={handleChange}
           className="p-2 border"
+          rows={4}
           required
         />
-        <input
-          name="current_value"
-          placeholder="Current value"
-          onChange={handleChange}
-          className="p-2 border"
-          required
-        />
-        <input
-          name="requested_value"
-          placeholder="Requested value"
-          onChange={handleChange}
-          className="p-2 border"
-          required
-        />
+
         <input
           type="file"
           onChange={(e) => setProofFile(e.target.files[0])}
           className="p-2 border"
           required
         />
+
         <button type="submit" className="bg-blue-600 text-white p-2 rounded">
           Submit
         </button>
