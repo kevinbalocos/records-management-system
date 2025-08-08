@@ -1,19 +1,20 @@
 const db = require("../db"); // Assuming db.js is in the parent directory
 
 exports.createRequestType = (req, res) => {
-  const { name, description } = req.body;
-  const status = 'draft'; // New types always start as draft
+  const { name, description, price } = req.body; // Added price
+  const status = 'draft';
 
   if (!name) {
     return res.status(400).json({ message: "Request type name is required." });
   }
 
   const query = `
-    INSERT INTO request_types (name, description, status)
-    VALUES (?, ?, ?)
+    INSERT INTO request_types (name, description, price, status)
+    VALUES (?, ?, ?, ?)
   `;
 
-  db.query(query, [name, description, status], (err, result) => {
+  // Added price to the query parameters
+  db.query(query, [name, description, price || 0, status], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({ message: "Request type with this name already exists." });
@@ -61,10 +62,9 @@ exports.getRequestTypeById = (req, res) => {
     res.json(results[0]);
   });
 };
-
 exports.updateRequestType = (req, res) => {
   const { id } = req.params;
-  const { name, description, status } = req.body;
+  const { name, description, status, price } = req.body; // Added price
 
   if (!name || !status) {
     return res.status(400).json({ message: "Name and status are required." });
@@ -75,11 +75,12 @@ exports.updateRequestType = (req, res) => {
 
   const query = `
     UPDATE request_types
-    SET name = ?, description = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+    SET name = ?, description = ?, price = ?, status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `;
 
-  db.query(query, [name, description, status, id], (err, result) => {
+  // Added price to the query parameters
+  db.query(query, [name, description, price, status, id], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({ message: "Request type with this name already exists." });

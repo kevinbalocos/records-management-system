@@ -1,131 +1,77 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
-import qrImage from "../qr_pic/qr_code_sample.jfif";
+import { useNavigate } from "react-router-dom";
 import {
-  Users,
-  BarChart3,
-  Settings,
-  HelpCircle,
-  LogOut,
-  Building,
   CheckCircle,
   XCircle,
   AlertCircle,
+  Bell,
+  ArrowLeft,
+  Banknote,
+  LogOut,
   FileText,
-  Upload,
   Clock,
   CalendarDays,
-  Bell, // For SystemAlert
+  UploadCloud,
 } from "lucide-react";
 import { io } from "socket.io-client";
+import PaymentMethod from "../PaymentLandingPage/PaymentMethod";
 
 const socket = io("http://localhost:5000");
 const API_BASE = "http://localhost:5000";
 const BASE_URL = "http://localhost:5000";
 
-function getInitials(name) {
-  if (!name) return "";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-// Custom SystemAlert component (copied from LoginPage, adapted for general use)
-const SystemAlert = ({
-  message,
-  type,
-  onClose,
-  isVisible,
-  isDarkMode = false,
-}) => {
+const SystemAlert = ({ message, type, onClose, isVisible }) => {
   const getAlertStyles = () => {
     const baseStyles =
-      "flex items-center p-4 rounded-xl shadow-2xl backdrop-blur-md border max-w-lg w-full";
-    if (isDarkMode) {
-      switch (type) {
-        case "success":
-          return `${baseStyles} bg-emerald-900/90 border-emerald-700 text-emerald-200`;
-        case "error":
-          return `${baseStyles} bg-red-900/90 border-red-700 text-red-200`;
-        case "warning":
-          return `${baseStyles} bg-amber-900/90 border-amber-700 text-amber-200`;
-        case "info":
-          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
-        default:
-          return `${baseStyles} bg-blue-900/90 border-blue-700 text-blue-200`;
-      }
-    } else {
-      switch (type) {
-        case "success":
-          return `${baseStyles} bg-emerald-50/90 border-emerald-200 text-emerald-800`;
-        case "error":
-          return `${baseStyles} bg-red-50/90 border-red-200 text-red-800`;
-        case "warning":
-          return `${baseStyles} bg-amber-50/90 border-amber-200 text-amber-800`;
-        case "info":
-          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
-        default:
-          return `${baseStyles} bg-blue-50/90 border-blue-200 text-blue-800`;
-      }
+      "flex items-center p-4 rounded-lg shadow-md border max-w-lg w-full transition-all duration-300";
+    switch (type) {
+      case "success":
+        return `${baseStyles} bg-green-50 border-green-200 text-green-800`;
+      case "error":
+        return `${baseStyles} bg-red-50 border-red-200 text-red-800`;
+      case "warning":
+        return `${baseStyles} bg-yellow-50 border-yellow-200 text-yellow-800`;
+      case "info":
+        return `${baseStyles} bg-blue-50 border-blue-200 text-blue-800`;
+      default:
+        return `${baseStyles} bg-gray-50 border-gray-200 text-gray-800`;
     }
   };
 
   const getIcon = () => {
     const iconClass = "w-6 h-6 mr-3 flex-shrink-0";
-    if (isDarkMode) {
-      switch (type) {
-        case "success":
-          return <CheckCircle className={`${iconClass} text-emerald-400`} />;
-        case "error":
-          return <XCircle className={`${iconClass} text-red-400`} />;
-        case "warning":
-          return <AlertCircle className={`${iconClass} text-amber-400`} />;
-        case "info":
-          return <Bell className={`${iconClass} text-blue-400`} />;
-        default:
-          return <AlertCircle className={`${iconClass} text-blue-400`} />;
-      }
-    } else {
-      switch (type) {
-        case "success":
-          return <CheckCircle className={`${iconClass} text-emerald-500`} />;
-        case "error":
-          return <XCircle className={`${iconClass} text-red-500`} />;
-        case "warning":
-          return <AlertCircle className={`${iconClass} text-amber-500`} />;
-        case "info":
-          return <Bell className={`${iconClass} text-blue-500`} />;
-        default:
-          return <AlertCircle className={`${iconClass} text-blue-500`} />;
-      }
+    switch (type) {
+      case "success":
+        return <CheckCircle className={`${iconClass} text-green-500`} />;
+      case "error":
+        return <XCircle className={`${iconClass} text-red-500`} />;
+      case "warning":
+        return <AlertCircle className={`${iconClass} text-yellow-500`} />;
+      case "info":
+        return <Bell className={`${iconClass} text-blue-500`} />;
+      default:
+        return <AlertCircle className={`${iconClass} text-gray-500`} />;
     }
   };
 
   return (
     <div
-      className={`fixed top-10 left-1/2 -translate-x-1/2 z-50 transform transition-all duration-500 ease-out
-        ${
-          isVisible
-            ? "translate-y-0 opacity-100 scale-100"
-            : "-translate-y-full opacity-0 scale-95"
-        }`}
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out 
+         ${
+           isVisible
+             ? "translate-y-0 opacity-100"
+             : "-translate-y-full opacity-0"
+         }`}
     >
       <div className={getAlertStyles()}>
         {getIcon()}
         <div className="flex-1">
-          <p className="font-semibold text-base">{message}</p>
+          <p className="font-semibold text-sm">{message}</p>
         </div>
         <button
           onClick={onClose}
-          className={`ml-4 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/20
-                      ${
-                        isDarkMode
-                          ? "dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-gray-700/50"
-                          : ""
-                      }`}
+          className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <XCircle className="w-5 h-5" />
         </button>
@@ -134,13 +80,12 @@ const SystemAlert = ({
   );
 };
 
-// Custom hook for notifications (re-using the logic, renamed for clarity)
 const useSystemAlert = () => {
   const [alertState, setAlertState] = useState(null);
 
   const showAlert = useCallback(
-    (message, type = "success", duration = 4000, isDarkMode = false) => {
-      setAlertState({ message, type, isVisible: true, isDarkMode });
+    (message, type = "success", duration = 4000) => {
+      setAlertState({ message, type, isVisible: true });
       setTimeout(() => {
         setAlertState((prev) => (prev ? { ...prev, isVisible: false } : null));
       }, duration);
@@ -163,7 +108,7 @@ const useSystemAlert = () => {
 
 const RecordsLandingPage = () => {
   const navigate = useNavigate();
-  const [type, setType] = useState(""); // Initial type can be empty or first fetched type
+  const [type, setType] = useState("");
   const [details, setDetails] = useState("");
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,46 +116,24 @@ const RecordsLandingPage = () => {
   const userId = localStorage.getItem("userId");
   const [activities, setActivities] = useState([]);
   const [stats, setStats] = useState([]);
-  const [requestTypes, setRequestTypes] = useState([]); // State for dynamic request types
-  const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert(); // Using new hook name
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedRequestId, setSelectedRequestId] = useState(null);
-  const [receiptFile, setReceiptFile] = useState(null);
+  const [requestTypes, setRequestTypes] = useState([]);
+  const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert();
+  const [isPaymentViewOpen, setIsPaymentViewOpen] = useState(false);
+  const [requestToPay, setRequestToPay] = useState(null);
 
   const fetchStats = async () => {
     try {
-      // Changed endpoint to fetch global statistics, as defined in backend/controllers/requestController.js
       const res = await axios.get(`${API_BASE}/api/requests/stats`);
       const data = res.data;
       setStats([
-        {
-          title: "Total Requests",
-          value: data.total,
-          icon: FileText,
-          bgColor: "bg-blue-100",
-          textColor: "text-blue-600",
-        },
-        {
-          title: "Pending Requests",
-          value: data.pending,
-          icon: Clock,
-          bgColor: "bg-yellow-100",
-          textColor: "text-yellow-600",
-        },
+        { title: "Total Requests", value: data.total, icon: FileText },
+        { title: "Pending Requests", value: data.pending, icon: Clock },
         {
           title: "Completed Requests",
           value: data.completed,
           icon: CheckCircle,
-          bgColor: "bg-green-100",
-          textColor: "text-green-600",
         },
-        {
-          title: "This Month",
-          value: data.thisMonth,
-          icon: CalendarDays,
-          bgColor: "bg-purple-100",
-          textColor: "text-purple-600",
-        },
+        { title: "This Month", value: data.thisMonth, icon: CalendarDays },
       ]);
     } catch (err) {
       console.error("Failed to fetch stats:", err);
@@ -218,41 +141,31 @@ const RecordsLandingPage = () => {
     }
   };
 
-  const handleProceedToPayment = async (requestId) => {
-    setSelectedRequestId(requestId);
-    setShowPaymentModal(true);
+  const handleProceedToPayment = (requestId) => {
+    const request = activities.find((a) => a.id === requestId);
+    if (request) {
+      const requestType = requestTypes.find((req) => req.name === request.type);
+      if (requestType) {
+        setRequestToPay({
+          ...request,
+          price: requestType.price,
+        });
+        setIsPaymentViewOpen(true);
+      } else {
+        showAlert(
+          "Price information not found for this request type.",
+          "error"
+        );
+      }
+    } else {
+      showAlert("Request details not found.", "error");
+    }
   };
 
-  const handleReceiptUpload = async () => {
-    if (!receiptFile || !selectedRequestId) {
-      alert("Please select a file.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", receiptFile);
-
-    try {
-      // Step 1: Upload receipt
-      await axios.post(
-        `${BASE_URL}/api/requests/${selectedRequestId}/receipt`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      // Step 2: Mark as paid
-      await axios.put(`${BASE_URL}/api/requests/${selectedRequestId}/payment`);
-
-      alert("Receipt uploaded and request marked as paid.");
-      setShowPaymentModal(false);
-      setReceiptFile(null);
-      fetchRequests(); // Refresh request list
-    } catch (err) {
-      console.error("Error during receipt upload or marking as paid:", err);
-      alert("Upload failed.");
-    }
+  const handleClosePaymentView = () => {
+    setIsPaymentViewOpen(false);
+    setRequestToPay(null);
+    fetchRequests();
   };
 
   const fetchRequestTypes = useCallback(async () => {
@@ -260,14 +173,11 @@ const RecordsLandingPage = () => {
       const res = await axios.get(
         `${API_BASE}/api/request-types?status=published`
       );
-
       setRequestTypes(res.data);
-
-      // Set default type only if none is currently selected
       if (res.data.length > 0 && !type) {
         setType(res.data[0].name);
       } else if (res.data.length === 0) {
-        setType(""); // Clear if no types
+        setType("");
       }
     } catch (err) {
       console.error("Failed to fetch request types:", err);
@@ -278,9 +188,8 @@ const RecordsLandingPage = () => {
   useEffect(() => {
     if (!userId) return;
     fetchStats();
-    fetchRequestTypes(); // Fetch request types on mount
+    fetchRequestTypes();
 
-    // Check for persistent login notification
     const storedNotification = sessionStorage.getItem("loginNotification");
     if (storedNotification) {
       try {
@@ -340,12 +249,8 @@ const RecordsLandingPage = () => {
       setIsSubmitting(false);
       return;
     }
-    // Check if a type is selected and if there are any request types available
     if (!type || !details || !file || requestTypes.length === 0) {
-      showAlert(
-        "Please fill in all fields, upload a document, and ensure request types are available.",
-        "warning"
-      );
+      showAlert("Please fill in all fields and upload a document.", "warning");
       setIsSubmitting(false);
       return;
     }
@@ -364,12 +269,12 @@ const RecordsLandingPage = () => {
       showAlert("Request submitted successfully!", "success");
       setDetails("");
       setFile(null);
-      // Reset type to the first available type after submission
       if (requestTypes.length > 0) {
         setType(requestTypes[0].name);
       } else {
         setType("");
       }
+      fetchRequests();
     } catch (error) {
       console.error(error);
       showAlert("Failed to submit request.", "error");
@@ -386,8 +291,38 @@ const RecordsLandingPage = () => {
     navigate("/");
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500";
+      case "pending":
+        return "bg-yellow-500";
+      case "approved":
+        return "bg-blue-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const selectedRequestType = requestTypes.find((req) => req.name === type);
+  const selectedPrice = selectedRequestType ? selectedRequestType.price : null;
+  const fileName = file ? file.name : "No file selected";
+
+  if (isPaymentViewOpen && requestToPay) {
+    return (
+      <PaymentMethod
+        requestDetails={requestToPay}
+        onClose={handleClosePaymentView}
+        showAlert={showAlert}
+        fetchRequests={fetchRequests}
+        userData={userInfo}
+        price={requestToPay.price}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       {systemAlert && (
         <SystemAlert
           message={systemAlert.message}
@@ -397,257 +332,233 @@ const RecordsLandingPage = () => {
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1">
-        <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg">
-                <Building className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Resident Records
-                </h1>
-                <p className="text-gray-600">
-                  Manage and view resident information and records.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3 p-2 rounded-xl bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-teal-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">
-                    {getInitials(userInfo.first_name)}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0 hidden sm:block">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {userInfo.first_name || "Loading..."}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {userInfo.email || "Fetching email..."}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-2 rounded-full hover:bg-red-50 text-red-600 transition-colors"
-              >
-                <LogOut className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-        </header>
+      {/* --- Header --- */}
+      <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div className="flex items-center">
+          <h1 className="text-xl font-bold text-gray-900 ml-2">
+            Resident Records
+          </h1>
+        </div>
+        <div className="flex items-center space-x-4">
+          <p className="text-sm text-gray-600 hidden sm:block">
+            Hi,{" "}
+            <span className="font-semibold">
+              {userInfo.first_name || "Resident"}
+            </span>
+            !
+          </p>
+          <button
+            onClick={handleLogout}
+            className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full hover:bg-gray-100"
+            aria-label="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
 
-        <main className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* --- Main Content Grid --- */}
+      <main className="p-6 md:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* --- Left Column: Request Form --- */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* --- Stats Cards --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
                 <div
                   key={index}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
+                  className="bg-white p-5 rounded-xl shadow-sm flex items-center space-x-4 border border-gray-100"
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">
-                        {stat.title}
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                      <Icon className={`w-6 h-6 ${stat.textColor}`} />
-                    </div>
+                  <div className="p-3 bg-gray-100 rounded-full text-blue-600">
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {stat.value}
+                    </p>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-500 to-cyan-600 px-6 py-4">
-              <h2 className="text-xl font-semibold text-white flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
-                Create New Request
-              </h2>
-              <p className="text-teal-100 text-sm mt-1">
-                Submit your request for processing by the LGU office
-              </p>
-            </div>
-
-            <div className="p-6">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Request Type
-                    </label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      disabled={isSubmitting || requestTypes.length === 0}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors bg-white"
-                    >
-                      {requestTypes.length === 0 ? (
-                        <option value="">No request types available</option>
-                      ) : (
-                        requestTypes.map((reqType) => {
-                          // Changed to explicit return
-                          return (
-                            <option key={reqType.id} value={reqType.name}>
-                              {reqType.name}
-                            </option>
-                          );
-                        })
-                      )}
-                    </select>
-                    {requestTypes.length === 0 && (
-                      <p className="text-sm text-red-500 mt-1">
-                        No request types are currently published. Please contact
-                        admin.
-                      </p>
-                    )}
+          {/* --- Request Form Card --- */}
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Create New Request
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Request Type
+                </label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  disabled={isSubmitting || requestTypes.length === 0}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  {requestTypes.length === 0 ? (
+                    <option value="">No request types available</option>
+                  ) : (
+                    requestTypes.map((reqType) => (
+                      <option key={reqType.id} value={reqType.name}>
+                        {reqType.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {requestTypes.length === 0 && (
+                  <p className="text-xs text-red-500 mt-2">
+                    No request types are currently published.
+                  </p>
+                )}
+                {selectedPrice !== null && (
+                  <div className="flex items-center space-x-2 mt-3 text-sm text-gray-700">
+                    <Banknote className="w-4 h-4 text-green-600" />
+                    <span>
+                      Price: <span className="font-bold">₱{selectedPrice}</span>
+                    </span>
                   </div>
+                )}
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Upload Supporting Document
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        onChange={(e) => setFile(e.target.files[0])}
-                        disabled={isSubmitting}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                        required
-                      />
-                      <Upload className="absolute right-3 top-3 w-5 h-5 text-gray-400 pointer-events-none" />
-                    </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Request Details
+                </label>
+                <textarea
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 resize-none h-28 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Provide detailed information about your request..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Supporting Document
+                </label>
+                <label
+                  htmlFor="file-upload"
+                  className="w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex flex-col items-center">
+                    <UploadCloud className="w-8 h-8 text-gray-400" />
+                    <span className="mt-2 text-sm text-gray-600">
+                      {file ? fileName : "Click to upload your file"}
+                    </span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      (Max file size 5MB)
+                    </span>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Request Details
-                  </label>
-                  <textarea
-                    value={details}
-                    onChange={(e) => setDetails(e.target.value)}
+                  <input
+                    id="file-upload"
+                    type="file"
+                    onChange={(e) => setFile(e.target.files[0])}
                     disabled={isSubmitting}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors resize-none"
-                    rows="4"
-                    placeholder="Please provide detailed information about your request..."
-                    required
+                    className="sr-only"
                   />
-                </div>
+                </label>
+              </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Note:</span> All fields are
-                    required.
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || requestTypes.length === 0}
-                    className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center space-x-2 ${
-                      isSubmitting || requestTypes.length === 0
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 hover:shadow-lg transform hover:-translate-y-0.5"
-                    } text-white`}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Submitting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Submit Request</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || requestTypes.length === 0}
+                  className={`px-6 py-2 rounded-lg text-white text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
+                    isSubmitting || requestTypes.length === 0
+                      ? "bg-blue-300 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Submit Request</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-teal-600" />
+        {/* --- Right Column: Recent Activity --- */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Recent Activity
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {activities.length === 0 ? (
-                <p className="text-gray-500">No recent activity yet.</p>
+                <p className="text-gray-500 text-sm">No recent activity yet.</p>
               ) : (
                 activities
                   .slice()
                   .reverse()
-                  .map((activity, index) => (
+                  .map((activity) => (
                     <div
-                      key={index}
-                      className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      key={activity.id}
+                      className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 transition-shadow hover:shadow-md"
                     >
                       <div className="flex items-center space-x-3">
                         <div
-                          className={`w-3 h-3 rounded-full ${
-                            activity.status === "completed"
-                              ? "bg-green-500"
-                              : activity.status === "pending"
-                              ? "bg-yellow-500"
-                              : "bg-blue-500"
-                          }`}
+                          className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(
+                            activity.status
+                          )}`}
                         ></div>
-                        <div>
-                          <p className="font-medium text-gray-900">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">
                             {activity.type}
                           </p>
-                          <p className="text-sm text-gray-600 capitalize">
-                            {activity.status}
+                          <p className="text-xs text-gray-500 capitalize mt-1">
+                            Status: {activity.status}
                           </p>
-
-                          {/* Step 1: Show Proceed to Payment button if unpaid */}
                           {activity.status === "approved" &&
                             activity.payment_status === "unpaid" && (
                               <button
                                 onClick={() =>
                                   handleProceedToPayment(activity.id)
                                 }
-                                className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
+                                className="mt-2 bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-green-700 transition-colors"
                               >
-                                Proceed to Payment
+                                <div className="flex items-center space-x-1">
+                                  <Banknote className="w-3 h-3" />
+                                  <span>Proceed to Payment</span>
+                                </div>
                               </button>
                             )}
-
-                          {/* Step 2: Show Payment Completed if receipt uploaded (paid) */}
                           {activity.status === "approved" &&
                             activity.payment_status === "paid" && (
                               <p className="mt-2 text-green-600 text-xs font-medium">
-                                Payment Completed (Awaiting Admin Confirmation)
+                                Payment submitted, awaiting confirmation.
                               </p>
                             )}
-
-                          {/* Step 3: Final document ready */}
                           {activity.status === "completed" &&
                             activity.admin_file_path && (
                               <a
                                 href={`${API_BASE}/uploads/${activity.admin_file_path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="block mt-2 text-xs text-blue-600 hover:underline"
+                                className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-800 transition-colors hover:underline"
                               >
-                                Download Final Document
+                                Download Document
                               </a>
                             )}
                         </div>
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-xs text-gray-400">
                         {new Date(activity.created_at).toLocaleDateString()}
                       </span>
                     </div>
@@ -655,71 +566,8 @@ const RecordsLandingPage = () => {
               )}
             </div>
           </div>
-        </main>
-      </div>
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-[90%] max-w-md relative">
-            <h2 className="text-2xl font-bold text-center text-teal-700 mb-6">
-              GCash Payment
-            </h2>
-            {(() => {
-              const activity = activities.find(
-                (a) => a.id === selectedRequestId
-              );
-              return activity ? (
-                <p className="text-lg font-bold text-black mb-6">
-                  Payment for {activity.type} – ₱1.00
-                </p>
-              ) : (
-                <p className="text-red-500">Activity not found.</p>
-              );
-            })()}
-
-            <div className="flex flex-col items-center">
-              <div className="bg-gray-100 p-4 rounded-lg shadow-md mb-4 w-full">
-                <div className="w-full max-w-xs mx-auto h-48 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg border border-gray-300 shadow-sm flex items-center justify-center">
-                  <img
-                    src={qrImage}
-                    alt="GCash QR Code"
-                    className="w-40 h-40 object-contain"
-                  />
-                </div>
-                <p className="text-center text-gray-600 mt-2 text-sm">
-                  Scan the QR code using your GCash app to proceed with payment.
-                </p>
-              </div>
-
-              <div className="w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload Receipt:
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setReceiptFile(e.target.files[0])}
-                  className="block w-full mb-4 text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 w-full">
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="px-3 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReceiptUpload}
-                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  Submit Receipt
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 };
