@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import qrImage from "../qr_pic/qr_code_sample.jfif";
 import {
   Users,
   BarChart3,
@@ -656,20 +657,33 @@ const RecordsLandingPage = () => {
           </div>
         </main>
       </div>
-     {showPaymentModal && (
+      {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-2xl w-[90%] max-w-md relative">
             <h2 className="text-2xl font-bold text-center text-teal-700 mb-6">
               GCash Payment
             </h2>
+            {(() => {
+              const activity = activities.find(
+                (a) => a.id === selectedRequestId
+              );
+              return activity ? (
+                <p className="text-lg font-bold text-black mb-6">
+                  Payment for {activity.type} – ₱1.00
+                </p>
+              ) : (
+                <p className="text-red-500">Activity not found.</p>
+              );
+            })()}
 
             <div className="flex flex-col items-center">
               <div className="bg-gray-100 p-4 rounded-lg shadow-md mb-4 w-full">
                 <div className="w-full max-w-xs mx-auto h-48 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg border border-gray-300 shadow-sm flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <div className="text-4xl mb-2">📱</div>
-                    <div className="text-sm">GCash QR Code</div>
-                  </div>
+                  <img
+                    src={qrImage}
+                    alt="GCash QR Code"
+                    className="w-40 h-40 object-contain"
+                  />
                 </div>
                 <p className="text-center text-gray-600 mt-2 text-sm">
                   Scan the QR code using your GCash app to proceed with payment.

@@ -17,6 +17,17 @@ import {
   Clock,
 } from "lucide-react";
 
+const API_BASE = "http://localhost:5000";
+
+function getInitials(name) {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
+
 export default function UserPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState(() => {
@@ -25,6 +36,18 @@ export default function UserPage() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({});
+  const userId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE}/api/users/${userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("User not found");
+        return res.json();
+      })
+      .then((data) => setUserInfo(data));
+  }, [userId]);
 
   useEffect(() => {
     localStorage.setItem("UserActiveMenuItem", activeItem);
@@ -122,7 +145,10 @@ export default function UserPage() {
             {!isCollapsed && (
               <div className="flex-1 overflow-hidden">
                 <p className="text-lg font-semibold text-gray-800 truncate">
-                  John Doe
+                  {userInfo.first_name
+                    ? userInfo.first_name.charAt(0).toUpperCase() +
+                      userInfo.first_name.slice(1)
+                    : "Loading..."}
                 </p>
                 <p className="text-sm text-gray-500 truncate">User Portal</p>
               </div>
