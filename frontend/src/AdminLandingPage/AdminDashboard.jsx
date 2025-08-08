@@ -951,7 +951,7 @@ const AdminDashboard = ({ isDarkMode }) => {
 
       {/* Modal for Request Details */}
       {isModalOpen && selectedRequest && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div className="fixed inset-0 backdrop-blur-2xl bg-opacity-50 flex justify-center items-center z-50 p-4">
           <div
             className={`rounded-xl shadow-2xl w-full max-w-2xl p-8 transform transition-all duration-300 scale-95 hover:scale-100
                         ${

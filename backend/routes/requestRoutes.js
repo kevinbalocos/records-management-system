@@ -8,13 +8,19 @@ const {
   updateRequestStatus,
   getRequestStats,
   uploadAdminFile,
+  markAsPaid,
+  uploadPaymentReceipt,
 } = require("../controllers/requestController");
+const uploadReceipt = require("../middleware/uploadReceiptMiddleware");
 
 router.post("/", upload.single("file"), createRequest);
 router.get("/", getAllRequests);
 router.get("/user/:id", getUserRequests);
 router.post("/:id/status", updateRequestStatus);
-router.get("/stats", getRequestStats); // This is the global stats endpoint
+router.get("/stats", getRequestStats);
 router.post("/:id/upload", upload.single("file"), uploadAdminFile);
+router.put("/:id/payment", markAsPaid);
+router.post("/:id/receipt", uploadReceipt.single("file"), uploadPaymentReceipt);
+
 
 module.exports = router;

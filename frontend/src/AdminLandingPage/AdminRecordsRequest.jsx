@@ -362,6 +362,31 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
               </div>
             )}
 
+            {request.receipt_path && (
+              <div className="mt-4">
+                <label className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Receipt File
+                </label>
+                <div className="mt-2">
+                  <button
+                    onClick={() => handleViewDocument(request.receipt_path)}
+                    className="flex w-full items-center p-4 border border-indigo-200 bg-indigo-50 rounded-xl hover:border-indigo-300 hover:bg-indigo-100 transition-all cursor-pointer text-left"
+                  >
+                    <FileText className="w-6 h-6 text-indigo-600 mr-3" />
+                    <div className="flex-1">
+                      <p className="font-medium text-indigo-900">
+                        View Receipt
+                      </p>
+                      <p className="text-sm text-indigo-600">
+                        Click to view uploaded receipt
+                      </p>
+                    </div>
+                    <Download className="w-5 h-5 text-indigo-600" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {request.status === "approved" && !request.admin_file_path && (
               <div className="mt-4">
                 <p className="font-semibold text-gray-700 mb-2">
@@ -385,7 +410,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                       await onUpdateStatus(request.id, "completed");
 
                       onClose();
-                      await fetchRequests(); 
+                      await fetchRequests();
 
                       showToast(
                         "Document uploaded and request marked as completed.",

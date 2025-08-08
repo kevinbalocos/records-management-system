@@ -1,4 +1,6 @@
 const db = require("../db"); // Assuming db.js is in the parent directory
+const axios = require("axios");
+require("dotenv").config();
 
 exports.createRequest = (req, res) => {
   const { type, details, user_id } = req.body;
@@ -48,7 +50,7 @@ exports.createRequest = (req, res) => {
 exports.getUserRequests = (req, res) => {
   const { id } = req.params;
   db.query(
-    "SELECT id, type, details, file_path, status, created_at, admin_file_path FROM requests WHERE user_id = ?",
+    "SELECT id, type, details, file_path, status, created_at, admin_file_path, payment_status FROM requests WHERE user_id = ?",
     [id],
     (err, results) => {
       if (err)
@@ -102,7 +104,7 @@ exports.uploadAdminFile = (req, res) => {
 
   const query = `
     UPDATE requests
-    SET admin_file_path = ?, status = 'completed'
+    SET admin_file_path = ?, status = 'completed', payment_status = 'verified'
     WHERE id = ?
   `;
 
@@ -132,3 +134,50 @@ exports.getRequestStats = (req, res) => {
     res.json(results[0]);
   });
 };
+
+exports.markAsPaid = (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    "UPDATE requests SET payment_status = 'paid' WHERE id = ?",
+    [id],
+    (err, result) => {
+      if (err) {
+        console.error("Error updating payment status:", err);
+        return res.status(500).json({ message: "Error updating payment status" });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Request not found" });
+      }
+
+      res.status(200).json({ message: "Payment marked as paid" });
+    }
+  );
+};
+
+exports.uploadPaymentReceipt = (req, res) => {
+  const { id } = req.params;
+  const filePath = req.file ? `payment_receipts/${req.file.filename}` : null;
+
+  if (!filePath) {
+    return res.status(400).json({ message: "No receipt uploaded" });
+  }
+
+  const query = `
+    UPDATE requests
+    SET receipt_path = ?, payment_status = 'receipt_submitted'
+    WHERE id = ?
+  `;
+
+  db.query(query, [filePath, id], (err) => {
+    if (err) {
+      console.error("Error uploading receipt:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    res.status(200).json({ message: "Receipt uploaded successfully" });
+  });
+};
+
+

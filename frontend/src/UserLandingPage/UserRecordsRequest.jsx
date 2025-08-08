@@ -21,6 +21,7 @@ import { io } from "socket.io-client";
 
 const socket = io("http://localhost:5000");
 const API_BASE = "http://localhost:5000";
+const BASE_URL = "http://localhost:5000";
 
 function getInitials(name) {
   if (!name) return "";
@@ -171,6 +172,9 @@ const RecordsLandingPage = () => {
   const [stats, setStats] = useState([]);
   const [requestTypes, setRequestTypes] = useState([]); // State for dynamic request types
   const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert(); // Using new hook name
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);
 
   const fetchStats = async () => {
     try {
@@ -213,24 +217,62 @@ const RecordsLandingPage = () => {
     }
   };
 
+  const handleProceedToPayment = async (requestId) => {
+    setSelectedRequestId(requestId);
+    setShowPaymentModal(true);
+  };
+
+  const handleReceiptUpload = async () => {
+    if (!receiptFile || !selectedRequestId) {
+      alert("Please select a file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", receiptFile);
+
+    try {
+      // Step 1: Upload receipt
+      await axios.post(
+        `${BASE_URL}/api/requests/${selectedRequestId}/receipt`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      // Step 2: Mark as paid
+      await axios.put(`${BASE_URL}/api/requests/${selectedRequestId}/payment`);
+
+      alert("Receipt uploaded and request marked as paid.");
+      setShowPaymentModal(false);
+      setReceiptFile(null);
+      fetchRequests(); // Refresh request list
+    } catch (err) {
+      console.error("Error during receipt upload or marking as paid:", err);
+      alert("Upload failed.");
+    }
+  };
+
   const fetchRequestTypes = useCallback(async () => {
     try {
-      // Fetch only published request types for the user side
       const res = await axios.get(
         `${API_BASE}/api/request-types?status=published`
       );
+
       setRequestTypes(res.data);
-      // Set the default selected type to the first available published type
-      if (res.data.length > 0) {
+
+      // Set default type only if none is currently selected
+      if (res.data.length > 0 && !type) {
         setType(res.data[0].name);
-      } else {
-        setType(""); // No types available
+      } else if (res.data.length === 0) {
+        setType(""); // Clear if no types
       }
     } catch (err) {
       console.error("Failed to fetch request types:", err);
       showAlert("Failed to load available request types.", "error");
     }
-  }, [showAlert]);
+  }, [showAlert, type]);
 
   useEffect(() => {
     if (!userId) return;
@@ -243,7 +285,7 @@ const RecordsLandingPage = () => {
       try {
         const { message, type } = JSON.parse(storedNotification);
         showAlert(message, type);
-        sessionStorage.removeItem("loginNotification"); // Clear it after displaying
+        sessionStorage.removeItem("loginNotification");
       } catch (e) {
         console.error("Failed to parse stored notification:", e);
       }
@@ -253,7 +295,7 @@ const RecordsLandingPage = () => {
       fetchStats();
       if (data.user_id == userId) {
         setActivities((prev) => [data, ...prev]);
-        showAlert("Your request status has been updated!", "info"); // Notify user of status change
+        showAlert("Your request status has been updated!", "info");
       }
     });
     return () => {
@@ -261,17 +303,18 @@ const RecordsLandingPage = () => {
     };
   }, [userId, fetchStats, fetchRequestTypes, showAlert]);
 
-  useEffect(() => {
+  const fetchRequests = async () => {
     if (!userId) return;
-    const fetchRequests = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/api/requests/user/${userId}`);
-        setActivities(res.data);
-      } catch (error) {
-        console.error("Failed to fetch user requests:", error);
-        showAlert("Failed to load your past requests.", "error");
-      }
-    };
+    try {
+      const res = await axios.get(`${API_BASE}/api/requests/user/${userId}`);
+      setActivities(res.data);
+    } catch (error) {
+      console.error("Failed to fetch user requests:", error);
+      showAlert("Failed to load your past requests.", "error");
+    }
+  };
+
+  useEffect(() => {
     fetchRequests();
   }, [userId, showAlert]);
 
@@ -568,13 +611,35 @@ const RecordsLandingPage = () => {
                             {activity.status}
                           </p>
 
+                          {/* Step 1: Show Proceed to Payment button if unpaid */}
+                          {activity.status === "approved" &&
+                            activity.payment_status === "unpaid" && (
+                              <button
+                                onClick={() =>
+                                  handleProceedToPayment(activity.id)
+                                }
+                                className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
+                              >
+                                Proceed to Payment
+                              </button>
+                            )}
+
+                          {/* Step 2: Show Payment Completed if receipt uploaded (paid) */}
+                          {activity.status === "approved" &&
+                            activity.payment_status === "paid" && (
+                              <p className="mt-2 text-green-600 text-xs font-medium">
+                                Payment Completed (Awaiting Admin Confirmation)
+                              </p>
+                            )}
+
+                          {/* Step 3: Final document ready */}
                           {activity.status === "completed" &&
                             activity.admin_file_path && (
                               <a
                                 href={`${API_BASE}/uploads/${activity.admin_file_path}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline"
+                                className="block mt-2 text-xs text-blue-600 hover:underline"
                               >
                                 Download Final Document
                               </a>
@@ -591,6 +656,56 @@ const RecordsLandingPage = () => {
           </div>
         </main>
       </div>
+     {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-[90%] max-w-md relative">
+            <h2 className="text-2xl font-bold text-center text-teal-700 mb-6">
+              GCash Payment
+            </h2>
+
+            <div className="flex flex-col items-center">
+              <div className="bg-gray-100 p-4 rounded-lg shadow-md mb-4 w-full">
+                <div className="w-full max-w-xs mx-auto h-48 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg border border-gray-300 shadow-sm flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-4xl mb-2">📱</div>
+                    <div className="text-sm">GCash QR Code</div>
+                  </div>
+                </div>
+                <p className="text-center text-gray-600 mt-2 text-sm">
+                  Scan the QR code using your GCash app to proceed with payment.
+                </p>
+              </div>
+
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Receipt:
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setReceiptFile(e.target.files[0])}
+                  className="block w-full mb-4 text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 w-full">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-3 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReceiptUpload}
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Submit Receipt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
