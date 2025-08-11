@@ -247,6 +247,7 @@ const RequestCard = ({ request, onViewDetails, onUpdateStatus }) => {
 
 const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [approvalType, setApprovalType] = useState("");
 
   if (!isOpen || !request) return null;
 
@@ -268,25 +269,34 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (!approvalType) {
+      alert("Please select an approval type first.");
+      return;
+    }
+
     setIsUploading(true);
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("approval_type", approvalType); // cash_payment or guarantee_letter
+    formData.append("approval_file", file); // must match backend's upload.single("approval_file")
 
     try {
       await axios.post(
-        `http://localhost:5000/api/requests/${request.id}/upload`,
-        formData
+        `http://localhost:5000/api/requests/${request.id}/approve`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       await onUpdateStatus(request.id, "completed");
       onClose();
-      
-      // Note: showToast would need to be passed as a prop or accessed from context
-      // For now, using a basic alert
-      alert("Document uploaded and request marked as completed.");
+      alert("Approval file uploaded and request marked as completed.");
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload document.");
+      alert("Failed to upload approval file.");
     } finally {
       setIsUploading(false);
     }
@@ -332,15 +342,18 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
             <div className="bg-gray-50 rounded-xl p-6 flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-700">Current Status:</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Current Status:
+                  </span>
                   <StatusBadge status={request.status} />
                 </div>
                 <div className="h-6 w-px bg-gray-300"></div>
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Last Updated:</span> {formatDate(request.updated_at || request.created_at)}
+                  <span className="font-medium">Last Updated:</span>{" "}
+                  {formatDate(request.updated_at || request.created_at)}
                 </div>
               </div>
-              
+
               {request.status === "pending" && (
                 <div className="flex items-center space-x-3">
                   <button
@@ -373,33 +386,53 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                 <UserCheck className="w-5 h-5 mr-2 text-blue-600" />
                 Personal Information
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-                  <p className="text-base font-semibold text-gray-900">{request.resident_name || "N/A"}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Full Name
+                  </label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {request.resident_name || "N/A"}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Age</label>
-                  <p className="text-base font-semibold text-gray-900">{request.age || "N/A"}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Age
+                  </label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {request.age || "N/A"}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Gender</label>
-                  <p className="text-base font-semibold text-gray-900">{request.gender || "N/A"}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Gender
+                  </label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {request.gender || "N/A"}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Request Type</label>
-                  <p className="text-base font-semibold text-blue-700">{request.type}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Request Type
+                  </label>
+                  <p className="text-base font-semibold text-blue-700">
+                    {request.type}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Municipality</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Municipality
+                  </label>
                   <p className="text-base font-semibold text-gray-900 flex items-center">
                     <Building2 className="w-4 h-4 mr-1 text-gray-500" />
                     {request.municipality || "N/A"}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Street Address</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Street Address
+                  </label>
                   <p className="text-base font-semibold text-gray-900 flex items-center">
                     <MapPin className="w-4 h-4 mr-1 text-gray-500" />
                     {request.street || "N/A"}
@@ -414,15 +447,23 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                 <Activity className="w-5 h-5 mr-2 text-red-600" />
                 Medical Information
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Hospital Admitted</label>
-                  <p className="text-base font-semibold text-gray-900">{request.hospital_admitted || "N/A"}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Hospital Admitted
+                  </label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {request.hospital_admitted || "N/A"}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Date Submitted</label>
-                  <p className="text-base font-semibold text-gray-900">{formatDate(request.created_at)}</p>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Date Submitted
+                  </label>
+                  <p className="text-base font-semibold text-gray-900">
+                    {formatDate(request.created_at)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -450,7 +491,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                     {documents.length} files
                   </span>
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {documents.map((doc, index) => (
                     <button
@@ -463,7 +504,9 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                         <p className="font-medium text-gray-900 group-hover:text-blue-700 truncate">
                           {doc.label}
                         </p>
-                        <p className="text-sm text-gray-500">Click to view document</p>
+                        <p className="text-sm text-gray-500">
+                          Click to view document
+                        </p>
                       </div>
                       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" />
                     </button>
@@ -473,7 +516,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
             )}
 
             {/* Receipt Document */}
-            {request.receipt_path && (
+            {/* {request.receipt_path && (
               <div className="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <FileCheck className="w-5 h-5 mr-2 text-green-600" />
@@ -492,52 +535,79 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                   <ExternalLink className="w-4 h-4 text-green-600" />
                 </button>
               </div>
-            )}
+            )} */}
 
             {/* File Upload Section for Approved Requests */}
-            {request.status === "approved" && !request.admin_file_path && (
+            {request.status === "approved" && !request.approval_file && (
               <div className="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Upload className="w-5 h-5 mr-2 text-blue-600" />
-                  Upload Final Document
+                  Choose Approval Type & Upload File
                 </h3>
-                
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer cursor-pointer"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Upload the final processed document. This will mark the request as completed.
-                  </p>
-                  {isUploading && (
-                    <div className="mt-3 flex items-center text-blue-600">
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      <span className="text-sm">Uploading...</span>
-                    </div>
-                  )}
+
+                {/* Select approval type */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Approval Type
+                  </label>
+                  <select
+                    value={approvalType}
+                    onChange={(e) => setApprovalType(e.target.value)}
+                    className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  >
+                    <option value="">-- Select --</option>
+                    <option value="cash_payment">Cash Release</option>
+                    <option value="guarantee_letter">Guarantee Letter</option>
+                  </select>
                 </div>
+
+                {/* File Upload based on selection */}
+                {approvalType && (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      {approvalType === "cash"
+                        ? "Upload the receipt of cash released."
+                        : "Upload the signed guarantee letter by Cong."}
+                    </p>
+                    {isUploading && (
+                      <div className="mt-3 flex items-center text-blue-600">
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        <span className="text-sm">Uploading...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Final Document Section */}
-            {request.admin_file_path && (
+            {request.approval_file && (
               <div className="bg-white border border-gray-200 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-emerald-600" />
                   Final Document
                 </h3>
-                
+
                 <button
-                  onClick={() => handleViewDocument(request.admin_file_path)}
+                  onClick={() => handleViewDocument(request.approval_file)}
                   className="flex items-center p-4 border border-emerald-200 bg-emerald-50 rounded-lg hover:border-emerald-300 hover:bg-emerald-100 transition-all text-left group w-full"
                 >
                   <FileCheck className="w-8 h-8 text-emerald-600 mr-3" />
                   <div className="flex-1">
-                    <p className="font-medium text-emerald-900">Completed Document</p>
-                    <p className="text-sm text-emerald-600">Final processed document ready for download</p>
+                    <p className="font-medium text-emerald-900">
+                      Completed Document
+                    </p>
+                    <p className="text-sm text-emerald-600">
+                      {request.approval_type === "cash_payment"
+                        ? "Receipt of Cash Released"
+                        : "Signed Guarantee Letter"}
+                    </p>
                   </div>
                   <Download className="w-4 h-4 text-emerald-600" />
                 </button>
@@ -580,7 +650,9 @@ const AdminRecordsRequest = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/api/requests/stats");
+      const response = await axios.get(
+        "http://localhost:5000/api/requests/stats"
+      );
       setStats(response.data);
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -720,10 +792,11 @@ const AdminRecordsRequest = () => {
                   Request Management
                 </h2>
                 <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
+                  {filteredRequests.length}{" "}
+                  {filteredRequests.length === 1 ? "request" : "requests"}
                 </span>
               </div>
-              
+
               <button
                 onClick={() => {
                   fetchRequests();

@@ -100,7 +100,9 @@ exports.getUserRequests = (req, res) => {
       patient_id_path,
       representative_id_path,
       status,
-      created_at
+      created_at,
+      approval_file,
+      approval_type
     FROM requests
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -135,6 +137,8 @@ exports.getAllRequests = (req, res) => {
       r.representative_id_path,
       r.status,
       r.created_at,
+      approval_file,
+      approval_type,
       u.first_name,
       u.last_name,
       CONCAT(u.first_name, ' ', u.last_name) AS resident_name
@@ -165,26 +169,33 @@ exports.updateRequestStatus = (req, res) => {
   });
 };
 
-exports.uploadAdminFile = (req, res) => {
+exports.approveRequest = (req, res) => {
   const { id } = req.params;
+  const { approval_type } = req.body;
   const filePath = req.file ? `records_request/${req.file.filename}` : null;
 
-  if (!filePath) {
-    return res.status(400).json({ message: "No file uploaded" });
+  if (!approval_type) {
+    return res.status(400).json({ message: "Approval type is required" });
   }
+
+  if (!filePath) {
+    return res.status(400).json({ message: "File upload is required" });
+  }
+
+  let status = "completed";
 
   const query = `
     UPDATE requests
-    SET admin_file_path = ?, status = 'completed', payment_status = 'verified'
+    SET approval_type = ?, approval_file = ?, status = ?
     WHERE id = ?
   `;
 
-  db.query(query, [filePath, id], (err, result) => {
+  db.query(query, [approval_type, filePath, status, id], (err) => {
     if (err) {
-      console.error("Error updating request with admin file:", err);
+      console.error("Error approving request:", err);
       return res.status(500).json({ message: "Server error" });
     }
-    res.json({ message: "File uploaded and request marked as completed" });
+    res.json({ message: "Request approved successfully" });
   });
 };
 
@@ -203,46 +214,5 @@ exports.getRequestStats = (req, res) => {
       return res.status(500).json({ message: "Error fetching stats" });
     }
     res.json(results[0]);
-  });
-};
-
-exports.markAsPaid = (req, res) => {
-  const { id } = req.params;
-
-  db.query("UPDATE requests SET payment_status = 'paid' WHERE id = ?", [id], (err, result) => {
-    if (err) {
-      console.error("Error updating payment status:", err);
-      return res.status(500).json({ message: "Error updating payment status" });
-    }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Request not found" });
-    }
-
-    res.status(200).json({ message: "Payment marked as paid" });
-  });
-};
-
-exports.uploadPaymentReceipt = (req, res) => {
-  const { id } = req.params;
-  const filePath = req.file ? `payment_receipts/${req.file.filename}` : null;
-
-  if (!filePath) {
-    return res.status(400).json({ message: "No receipt uploaded" });
-  }
-
-  const query = `
-    UPDATE requests
-    SET receipt_path = ?, payment_status = 'receipt_submitted'
-    WHERE id = ?
-  `;
-
-  db.query(query, [filePath, id], (err) => {
-    if (err) {
-      console.error("Error uploading receipt:", err);
-      return res.status(500).json({ message: "Server error" });
-    }
-
-    res.status(200).json({ message: "Receipt uploaded successfully" });
   });
 };

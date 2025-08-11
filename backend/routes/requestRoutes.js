@@ -7,11 +7,8 @@ const {
   getAllRequests,
   updateRequestStatus,
   getRequestStats,
-  uploadAdminFile,
-  markAsPaid,
-  uploadPaymentReceipt,
+  approveRequest,
 } = require("../controllers/requestController");
-const uploadReceipt = require("../middleware/uploadReceiptMiddleware");
 
 router.post(
   "/",
@@ -30,8 +27,6 @@ router.get("/", getAllRequests);
 router.get("/user/:id", getUserRequests);
 router.post("/:id/status", updateRequestStatus);
 router.get("/stats", getRequestStats);
-router.post("/:id/upload", upload.single("file"), uploadAdminFile);
-router.put("/:id/payment", markAsPaid);
-router.post("/:id/receipt", uploadReceipt.single("file"), uploadPaymentReceipt);
+router.post("/:id/approve", upload.single("approval_file"), approveRequest);
 
 module.exports = router;

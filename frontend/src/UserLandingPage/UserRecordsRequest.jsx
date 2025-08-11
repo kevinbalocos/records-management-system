@@ -708,12 +708,12 @@ const RecordsLandingPage = () => {
                               </p>
                             )}
                           {activity.status === "completed" &&
-                            activity.admin_file_path && (
+                            activity.approval_file && (
                               <a
-                                href={`${API_BASE}/uploads/${activity.admin_file_path}`}
+                                href={`${API_BASE}/uploads/${activity.approval_file}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-800 transition-colors hover:underline"
+                                className="inline-block mt-2 text-xs text-green-600 hover:text-green-800 transition-colors hover:underline"
                               >
                                 Download Document
                               </a>
