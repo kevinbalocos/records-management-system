@@ -56,13 +56,13 @@ export default function UserPage() {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "resident-request", label: "Resident Request", icon: CheckCircle },
-    {
-      id: "indigency-request",
-      label: "Indigency Request",
-      icon: ClipboardList,
-    },
-    { id: "corrections", label: "Correction Request", icon: ClipboardList },
-    { id: "correction-history", label: "Correction History", icon: Clock },
+    // {
+    //   id: "indigency-request",
+    //   label: "Indigency Request",
+    //   icon: ClipboardList,
+    // },
+    // { id: "corrections", label: "Correction Request", icon: ClipboardList },
+    // { id: "correction-history", label: "Correction History", icon: Clock },
   ];
 
   const handleLogout = () => {

@@ -332,8 +332,8 @@ export default function AdminPage() {
           label: "Records Request",
           icon: ClipboardList,
         },
-        { id: "indigency", label: "Indigency Request", icon: ClipboardList },
-        { id: "correction", label: "Correction Request", icon: ClipboardList },
+        // { id: "indigency", label: "Indigency Request", icon: ClipboardList },
+        // { id: "correction", label: "Correction Request", icon: ClipboardList },
       ],
     },
     {

@@ -1,16 +1,22 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+
+const uploadDir = path.join(__dirname, "..", "uploads", "records_request");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Ensure this directory exists relative to your server.js
-    cb(null, "uploads/records_request/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const name = `${Date.now()}-${Math.round(Math.random()*1e9)}${ext}`;
+    cb(null, name);
+  }
 });
 
-const uploadProof = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 } 
+});
 
-module.exports = uploadProof;
+module.exports = upload;

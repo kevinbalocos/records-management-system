@@ -1,69 +1,140 @@
-const db = require("../db"); // Assuming db.js is in the parent directory
+const db = require("../db");
 const axios = require("axios");
 require("dotenv").config();
 
 exports.createRequest = (req, res) => {
-  const { type, details, user_id } = req.body;
-  const filePath = req.file ? `records_request/${req.file.filename}` : null;
+  const {
+    type,
+    details = null,
+    user_id,
+    patient_name,
+    age,
+    gender,
+    street,
+    municipality,
+    hospital_admitted,
+  } = req.body;
 
-  if (!type || !details || !user_id) {
+  // files from multer.fields()
+  const files = req.files || {};
+  const medicalAbstractPath = files.medical_abstract ? `records_request/${files.medical_abstract[0].filename}` : null;
+  const medicalRequestPath = files.medical_request ? `records_request/${files.medical_request[0].filename}` : null;
+  const hospitalBillPath = files.hospital_bill ? `records_request/${files.hospital_bill[0].filename}` : null;
+  const socialCaseStudyPath = files.social_case_study ? `records_request/${files.social_case_study[0].filename}` : null;
+  const patientIdPath = files.patient_id_file ? `records_request/${files.patient_id_file[0].filename}` : null;
+  const representativeIdPath = files.representative_id_file ? `records_request/${files.representative_id_file[0].filename}` : null;
+
+  // basic validation
+  if (!type || !user_id || !patient_name || !age || !gender || !street || !municipality || !hospital_admitted) {
     return res.status(400).json({ message: "Missing required fields." });
   }
 
   const query = `
-    INSERT INTO requests (user_id, type, details, file_path, status)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO requests (
+      user_id, type, details, patient_name, age, gender, street, municipality, hospital_admitted,
+      medical_abstract_path, medical_request_path, hospital_bill_path,
+      social_case_study_path, patient_id_path, representative_id_path, status
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(
-    query,
-    [user_id, type, details, filePath, "pending"],
-    (err, result) => {
-      if (err) {
-        console.error("Failed to insert request:", err);
-        return res
-          .status(500)
-          .json({ message: "Server error while saving request" });
-      }
+  const params = [
+    user_id, type, details, patient_name, age, gender, street, municipality, hospital_admitted,
+    medicalAbstractPath, medicalRequestPath, hospitalBillPath,
+    socialCaseStudyPath, patientIdPath, representativeIdPath, "pending"
+  ];
 
-      const io = req.app.get("io");
+  db.query(query, params, (err, result) => {
+    if (err) {
+      console.error("Failed to insert request:", err);
+      return res.status(500).json({ message: "Server error while saving request" });
+    }
+
+    const io = req.app.get("io");
+    if (io) {
       io.emit("newRequest", {
         id: result.insertId,
         user_id,
         type,
-        details,
-        file_path: filePath,
+        patient_name,
+        age,
+        gender,
+        street,
+        municipality,
+        hospital_admitted,
+        medical_abstract_path: medicalAbstractPath,
+        medical_request_path: medicalRequestPath,
+        hospital_bill_path: hospitalBillPath,
+        social_case_study_path: socialCaseStudyPath,
+        patient_id_path: patientIdPath,
+        representative_id_path: representativeIdPath,
         status: "pending",
         created_at: new Date().toISOString(),
       });
-
-      res
-        .status(201)
-        .json({
-          message: "Request submitted successfully",
-          id: result.insertId,
-        });
     }
-  );
+
+    res.status(201).json({
+      message: "Request submitted successfully",
+      id: result.insertId,
+    });
+  });
 };
 
 exports.getUserRequests = (req, res) => {
   const { id } = req.params;
-  db.query(
-    "SELECT id, type, details, file_path, status, created_at, admin_file_path, payment_status FROM requests WHERE user_id = ?",
-    [id],
-    (err, results) => {
-      if (err)
-        return res.status(500).json({ message: "Error fetching requests" });
-      res.json(results);
+  const query = `
+    SELECT 
+      id,
+      type,
+      details,
+      patient_name,
+      age,
+      gender,
+      street,
+      municipality,
+      hospital_admitted,
+      medical_abstract_path,
+      medical_request_path,
+      hospital_bill_path,
+      social_case_study_path,
+      patient_id_path,
+      representative_id_path,
+      status,
+      created_at
+    FROM requests
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+  `;
+
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error("Error fetching user requests:", err);
+      return res.status(500).json({ message: "Error fetching requests" });
     }
-  );
+    res.json(results);
+  });
 };
 
 exports.getAllRequests = (req, res) => {
   const query = `
     SELECT
-      r.*,
+      r.id,
+      r.type,
+      r.details,
+      r.patient_name,
+      r.age,
+      r.gender,
+      r.street,
+      r.municipality,
+      r.hospital_admitted,
+      r.medical_abstract_path,
+      r.medical_request_path,
+      r.hospital_bill_path,
+      r.social_case_study_path,
+      r.patient_id_path,
+      r.representative_id_path,
+      r.status,
+      r.created_at,
       u.first_name,
       u.last_name,
       CONCAT(u.first_name, ' ', u.last_name) AS resident_name
@@ -73,8 +144,10 @@ exports.getAllRequests = (req, res) => {
   `;
 
   db.query(query, (err, results) => {
-    if (err)
+    if (err) {
+      console.error("Error fetching all requests:", err);
       return res.status(500).json({ message: "Error fetching all requests" });
+    }
     res.json(results);
   });
 };
@@ -83,15 +156,13 @@ exports.updateRequestStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  db.query(
-    "UPDATE requests SET status = ? WHERE id = ?",
-    [status, id],
-    (err, result) => {
-      if (err)
-        return res.status(500).json({ message: "Error updating status" });
-      res.json({ message: "Status updated" });
+  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, id], (err, result) => {
+    if (err) {
+      console.error("Error updating status:", err);
+      return res.status(500).json({ message: "Error updating status" });
     }
-  );
+    res.json({ message: "Status updated" });
+  });
 };
 
 exports.uploadAdminFile = (req, res) => {
@@ -138,22 +209,18 @@ exports.getRequestStats = (req, res) => {
 exports.markAsPaid = (req, res) => {
   const { id } = req.params;
 
-  db.query(
-    "UPDATE requests SET payment_status = 'paid' WHERE id = ?",
-    [id],
-    (err, result) => {
-      if (err) {
-        console.error("Error updating payment status:", err);
-        return res.status(500).json({ message: "Error updating payment status" });
-      }
-
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Request not found" });
-      }
-
-      res.status(200).json({ message: "Payment marked as paid" });
+  db.query("UPDATE requests SET payment_status = 'paid' WHERE id = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Error updating payment status:", err);
+      return res.status(500).json({ message: "Error updating payment status" });
     }
-  );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    res.status(200).json({ message: "Payment marked as paid" });
+  });
 };
 
 exports.uploadPaymentReceipt = (req, res) => {
@@ -179,5 +246,3 @@ exports.uploadPaymentReceipt = (req, res) => {
     res.status(200).json({ message: "Receipt uploaded successfully" });
   });
 };
-
-

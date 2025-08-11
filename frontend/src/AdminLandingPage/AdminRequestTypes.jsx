@@ -203,7 +203,7 @@ const RequestTypeFormModal = ({
             ></textarea>
           </div>
           {/* New Price Input Field */}
-          <div>
+          {/* <div>
             <label
               htmlFor="price"
               className="block text-sm font-medium text-gray-700 mb-1"
@@ -220,7 +220,7 @@ const RequestTypeFormModal = ({
               step="0.01"
               disabled={loading}
             />
-          </div>
+          </div> */}
           {initialData && (
             <div>
               <label
@@ -483,10 +483,10 @@ const AdminRequestTypes = () => {
                     {type.description || "No description provided."}
                   </p>
                   {/* Display the price */}
-                  <p className="text-sm text-gray-800 font-semibold mt-1">
+                  {/* <p className="text-sm text-gray-800 font-semibold mt-1">
                     Price: $
                     {type.price ? Number(type.price).toFixed(2) : "0.00"}
-                  </p>
+                  </p> */}
                   <div className="mt-2">{getStatusBadge(type.status)}</div>
                 </div>
                 <div className="flex space-x-2 flex-shrink-0">

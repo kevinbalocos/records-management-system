@@ -120,6 +120,18 @@ const RecordsLandingPage = () => {
   const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert();
   const [isPaymentViewOpen, setIsPaymentViewOpen] = useState(false);
   const [requestToPay, setRequestToPay] = useState(null);
+  const [patientName, setPatientName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [street, setStreet] = useState("");
+  const [municipality, setMunicipality] = useState("");
+  const [hospitalAdmitted, setHospitalAdmitted] = useState("");
+  const [medicalAbstract, setMedicalAbstract] = useState(null);
+  const [medicalRequest, setMedicalRequest] = useState(null);
+  const [hospitalBill, setHospitalBill] = useState(null);
+  const [socialCaseStudy, setSocialCaseStudy] = useState(null);
+  const [patientId, setPatientId] = useState(null);
+  const [representativeId, setRepresentativeId] = useState(null);
 
   const fetchStats = async () => {
     try {
@@ -244,12 +256,24 @@ const RecordsLandingPage = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+
     if (!userId) {
       showAlert("User not logged in.", "error");
       setIsSubmitting(false);
       return;
     }
-    if (!type || !details || !file || requestTypes.length === 0) {
+
+    // Check if at least one document is uploaded
+    const noFilesUploaded =
+      !medicalAbstract &&
+      !medicalRequest &&
+      !hospitalBill &&
+      !socialCaseStudy &&
+      !patientId &&
+      !representativeId;
+
+    // Validate all fields + file requirement
+    if (!type || !details || noFilesUploaded || requestTypes.length === 0) {
       showAlert("Please fill in all fields and upload a document.", "warning");
       setIsSubmitting(false);
       return;
@@ -258,22 +282,51 @@ const RecordsLandingPage = () => {
     const formData = new FormData();
     formData.append("type", type);
     formData.append("details", details);
-    formData.append("file", file);
     formData.append("user_id", userId);
+    formData.append("patient_name", patientName);
+    formData.append("age", age);
+    formData.append("gender", gender);
+    formData.append("street", street);
+    formData.append("municipality", municipality);
+    formData.append("hospital_admitted", hospitalAdmitted);
+
+    // Append only the files that are uploaded
+    if (medicalAbstract) formData.append("medical_abstract", medicalAbstract);
+    if (medicalRequest) formData.append("medical_request", medicalRequest);
+    if (hospitalBill) formData.append("hospital_bill", hospitalBill);
+    if (socialCaseStudy) formData.append("social_case_study", socialCaseStudy);
+    if (patientId) formData.append("patient_id_file", patientId);
+    if (representativeId)
+      formData.append("representative_id_file", representativeId);
+
     try {
       const res = await fetch(`${API_BASE}/api/requests`, {
         method: "POST",
         body: formData,
       });
+
       if (!res.ok) throw new Error("Failed to submit request");
+
       showAlert("Request submitted successfully!", "success");
+
+      // Reset all fields for next request
+      setType(requestTypes.length > 0 ? requestTypes[0].name : "");
       setDetails("");
+      setPatientName("");
+      setAge("");
+      setGender("");
+      setStreet("");
+      setMunicipality("");
+      setHospitalAdmitted("");
+
+      setMedicalAbstract(null);
+      setMedicalRequest(null);
+      setHospitalBill(null);
+      setSocialCaseStudy(null);
+      setPatientId(null);
+      setRepresentativeId(null);
       setFile(null);
-      if (requestTypes.length > 0) {
-        setType(requestTypes[0].name);
-      } else {
-        setType("");
-      }
+
       fetchRequests();
     } catch (error) {
       console.error(error);
@@ -362,7 +415,7 @@ const RecordsLandingPage = () => {
         {/* --- Left Column: Request Form --- */}
         <div className="lg:col-span-2 space-y-6">
           {/* --- Stats Cards --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -384,14 +437,16 @@ const RecordsLandingPage = () => {
                 </div>
               );
             })}
-          </div>
+          </div> */}
 
           {/* --- Request Form Card --- */}
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Create New Request
             </h2>
+
             <div className="space-y-6">
+              {/* Request Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Request Type
@@ -417,16 +472,94 @@ const RecordsLandingPage = () => {
                     No request types are currently published.
                   </p>
                 )}
-                {selectedPrice !== null && (
-                  <div className="flex items-center space-x-2 mt-3 text-sm text-gray-700">
-                    <Banknote className="w-4 h-4 text-green-600" />
-                    <span>
-                      Price: <span className="font-bold">₱{selectedPrice}</span>
-                    </span>
-                  </div>
-                )}
               </div>
 
+              {/* Patient Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Patient Name
+                  </label>
+                  <input
+                    type="text"
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gender
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Municipality
+                  </label>
+                  <input
+                    type="text"
+                    value={municipality}
+                    onChange={(e) => setMunicipality(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Street
+                </label>
+                <input
+                  type="text"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                />
+              </div>
+
+              {/* Hospital */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hospital Admitted
+                </label>
+                <input
+                  type="text"
+                  value={hospitalAdmitted}
+                  onChange={(e) => setHospitalAdmitted(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                />
+              </div>
+
+              {/* Request Details */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Request Details
@@ -440,33 +573,62 @@ const RecordsLandingPage = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Supporting Document
-                </label>
-                <label
-                  htmlFor="file-upload"
-                  className="w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex flex-col items-center">
-                    <UploadCloud className="w-8 h-8 text-gray-400" />
-                    <span className="mt-2 text-sm text-gray-600">
-                      {file ? fileName : "Click to upload your file"}
-                    </span>
-                    <span className="text-xs text-gray-400 mt-1">
-                      (Max file size 5MB)
-                    </span>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    onChange={(e) => setFile(e.target.files[0])}
-                    disabled={isSubmitting}
-                    className="sr-only"
-                  />
-                </label>
-              </div>
+              {/* Multiple Document Uploads */}
+              {[
+                {
+                  label: "Medical Abstract/Medical Certificate",
+                  state: medicalAbstract,
+                  set: setMedicalAbstract,
+                },
+                {
+                  label: "Medical Request/Prescription",
+                  state: medicalRequest,
+                  set: setMedicalRequest,
+                },
+                {
+                  label: "Hospital Final Bill/Quotation",
+                  state: hospitalBill,
+                  set: setHospitalBill,
+                },
+                {
+                  label: "Social Case Study Report",
+                  state: socialCaseStudy,
+                  set: setSocialCaseStudy,
+                },
+                { label: "Patient ID", state: patientId, set: setPatientId },
+                {
+                  label: "Representative ID",
+                  state: representativeId,
+                  set: setRepresentativeId,
+                },
+              ].map((doc, idx) => (
+                <div key={idx}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {doc.label}
+                  </label>
+                  <label className="relative w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex flex-col items-center">
+                      <UploadCloud className="w-8 h-8 text-gray-400" />
+                      <span className="mt-2 text-sm text-gray-600">
+                        {doc.state
+                          ? doc.state.name
+                          : `Click to upload ${doc.label}`}
+                      </span>
+                      <span className="text-xs text-gray-400 mt-1">
+                        (Max file size 5MB)
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      onChange={(e) => doc.set(e.target.files[0])}
+                      disabled={isSubmitting}
+                      className="sr-only absolute"
+                    />
+                  </label>
+                </div>
+              ))}
 
+              {/* Submit */}
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleSubmit}
