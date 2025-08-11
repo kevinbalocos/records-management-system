@@ -385,6 +385,31 @@ const RecordsLandingPage = () => {
         />
       )}
 
+      {/* --- Header --- */}
+      <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div className="flex items-center">
+          <h1 className="text-xl font-bold text-gray-900 ml-2">
+            Resident Records
+          </h1>
+        </div>
+        <div className="flex items-center space-x-4">
+          <p className="text-sm text-gray-600 hidden sm:block">
+            Hi,{" "}
+            <span className="font-semibold">
+              {userInfo.first_name || "Resident"}
+            </span>
+            !
+          </p>
+          <button
+            onClick={handleLogout}
+            className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full hover:bg-gray-100"
+            aria-label="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
       {/* --- Main Content Grid --- */}
       <main className="p-6 md:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* --- Left Column: Request Form --- */}
