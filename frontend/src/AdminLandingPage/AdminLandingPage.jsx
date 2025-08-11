@@ -777,19 +777,13 @@ export default function AdminPage() {
 
           {/* Page Content Area */}
           <main
-            className={`flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto ${
+            className={`flex-1 overflow-y-auto ${
               isDarkMode ? "bg-gray-900" : "bg-teal-50"
             }`}
           >
             {activeItem === "dashboard" && (
               <div
-                className={`${
-                  isDarkMode
-                    ? "bg-gray-800 text-gray-100"
-                    : "bg-white text-gray-900"
-                } rounded-xl shadow-lg border ${
-                  isDarkMode ? "border-gray-700" : "border-gray-100"
-                } p-4 sm:p-6 lg:p-8`}
+                className={`${isDarkMode ? "bg-gray-800 text-gray-100" : ""}`}
               >
                 <AdminDashboard isDarkMode={isDarkMode} />
               </div>

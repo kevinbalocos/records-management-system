@@ -262,27 +262,27 @@ export default function UserPage() {
         )}
 
         {/* Page Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-teal-50">
+        <main className="flex-1   overflow-y-auto bg-teal-50">
           {activeItem === "dashboard" && (
-            <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 text-center text-gray-700 font-semibold text-xl sm:text-2xl h-full flex items-center justify-center border border-gray-100"></div>
+            <div className="bg-white rounded-xl shadow-lg  sm:p-8 text-center text-gray-700 font-semibold text-xl sm:text-2xl h-full flex items-center justify-center border border-gray-100"></div>
           )}
           {activeItem === "resident-request" && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <RecordsLandingPage />
             </div>
           )}
           {activeItem === "indigency-request" && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <IndigencyRequest />
             </div>
           )}
           {activeItem === "corrections" && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <UserCorrectionForm />
             </div>
           )}
           {activeItem === "correction-history" && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 sm:p-6 lg:p-8">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <UserCorrectionHistory />
             </div>
           )}
