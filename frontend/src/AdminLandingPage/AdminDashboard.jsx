@@ -733,22 +733,22 @@ const AdminDashboard = ({ isDarkMode }) => {
         }
       )}`,
     },
-    {
-      label: "Paid",
-      value: `₱${Number(stats.paidCashAssistance || 0).toLocaleString(
-        undefined,
-        {
-          maximumFractionDigits: 0,
-        }
-      )}`,
-    },
-    {
-      label: "Unpaid",
-      value: `₱${(
-        Number(stats.totalCashAssistance || 0) -
-        Number(stats.paidCashAssistance || 0)
-      ).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-    },
+    // {
+    //   label: "Paid",
+    //   value: `₱${Number(stats.paidCashAssistance || 0).toLocaleString(
+    //     undefined,
+    //     {
+    //       maximumFractionDigits: 0,
+    //     }
+    //   )}`,
+    // },
+    // {
+    //   label: "Unpaid",
+    //   value: `₱${(
+    //     Number(stats.totalCashAssistance || 0) -
+    //     Number(stats.paidCashAssistance || 0)
+    //   ).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+    // },
   ];
 
   const guaranteeLetterStats = [
@@ -759,10 +759,10 @@ const AdminDashboard = ({ isDarkMode }) => {
       value:
         (stats.totalGuaranteeLetters || 0) - (stats.paidGuaranteeLetters || 0),
     },
-    {
-      label: "Total Amount",
-      value: `₱${((stats.guaranteeLetterAmount || 0) / 1000).toFixed(0)}K`,
-    },
+    // {
+    //   label: "Total Amount",
+    //   value: `₱${((stats.guaranteeLetterAmount || 0) / 1000).toFixed(0)}K`,
+    // },
   ];
 
   return (

@@ -3,6 +3,7 @@ import AdminAndSuperAdminUserApproval from "../authentication/Admin-SuperAdminUs
 import AdminDashboard from "../AdminLandingPage/AdminDashboard";
 import RecordsRequest from "./AdminRecordsRequest";
 import IndigencyAdmin from "./IndigencyAdmin";
+import AdminRecordsReleased from "./AdminRecordsReleased";
 import AdminCorrectionList from "./AdminCorrectionList";
 import AdminRequestTypes from "./AdminRequestTypes";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +21,8 @@ import {
   Moon,
   Menu,
   Activity, // For loading spinner in splash
-  ListChecks, // Icon for Request Types
+  ListChecks,
+  FileCheck, // Icon for Request Types
 } from "lucide-react";
 
 // Custom CSS for glassmorphism and animations (Tailwind doesn't directly support backdrop-filter)
@@ -331,6 +333,11 @@ export default function AdminPage() {
           id: "records-request",
           label: "Records Request",
           icon: ClipboardList,
+        },
+        {
+          id: "records-released",
+          label: "Records Released",
+          icon: FileCheck,
         },
         // { id: "indigency", label: "Indigency Request", icon: ClipboardList },
         // { id: "correction", label: "Correction Request", icon: ClipboardList },
@@ -812,6 +819,19 @@ export default function AdminPage() {
                 } p-4 sm:p-6 lg:p-8`}
               >
                 <RecordsRequest isDarkMode={isDarkMode} />
+              </div>
+            )}
+            {activeItem === "records-released" && (
+              <div
+                className={`${
+                  isDarkMode
+                    ? "bg-gray-800 text-gray-100"
+                    : "bg-white text-gray-900"
+                } rounded-xl shadow-lg border ${
+                  isDarkMode ? "border-gray-700" : "border-gray-100"
+                } p-4 sm:p-6 lg:p-8`}
+              >
+                <AdminRecordsReleased isDarkMode={isDarkMode} />
               </div>
             )}
             {activeItem === "indigency" && (
