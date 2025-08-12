@@ -276,7 +276,7 @@ const EntryPage = () => {
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
                 Digital Records
               </span>{" "}
-              Management for Indigency
+              Management
             </h1>
             <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl ">
               A secure and powerful platform for seamless data management,

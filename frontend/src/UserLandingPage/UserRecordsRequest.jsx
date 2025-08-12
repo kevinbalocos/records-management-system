@@ -13,14 +13,20 @@ import {
   Clock,
   CalendarDays,
   UploadCloud,
+  User,
+  List,
+  Upload,
+  Eye,
 } from "lucide-react";
 import { io } from "socket.io-client";
+// Assuming PaymentMethod and other components are in the same relative path
 import PaymentMethod from "../PaymentLandingPage/PaymentMethod";
 
+// Define the API and socket endpoints
 const socket = io("http://localhost:5000");
 const API_BASE = "http://localhost:5000";
-const BASE_URL = "http://localhost:5000";
 
+// A custom alert component to provide user feedback
 const SystemAlert = ({ message, type, onClose, isVisible }) => {
   const getAlertStyles = () => {
     const baseStyles =
@@ -58,11 +64,11 @@ const SystemAlert = ({ message, type, onClose, isVisible }) => {
   return (
     <div
       className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out
-          ${
-            isVisible
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-full opacity-0"
-          }`}
+        ${
+          isVisible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0"
+        }`}
     >
       <div className={getAlertStyles()}>
         {getIcon()}
@@ -106,26 +112,30 @@ const useSystemAlert = () => {
   return { alert: alertState, showAlert, hideAlert };
 };
 
+// Main component, refactored into a multi-step wizard
 const RecordsLandingPage = () => {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0); // New state for the wizard step
   const [type, setType] = useState("");
   const [details, setDetails] = useState("");
-  const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userInfo, setUserInfo] = useState({});
   const userId = localStorage.getItem("userId");
   const [activities, setActivities] = useState([]);
-  const [stats, setStats] = useState([]);
   const [requestTypes, setRequestTypes] = useState([]);
   const { alert: systemAlert, showAlert, hideAlert } = useSystemAlert();
   const [isPaymentViewOpen, setIsPaymentViewOpen] = useState(false);
   const [requestToPay, setRequestToPay] = useState(null);
+
+  // Patient and address details
   const [patientName, setPatientName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [street, setStreet] = useState("");
   const [municipality, setMunicipality] = useState("");
   const [hospitalAdmitted, setHospitalAdmitted] = useState("");
+
+  // File upload states
   const [medicalAbstract, setMedicalAbstract] = useState(null);
   const [medicalRequest, setMedicalRequest] = useState(null);
   const [hospitalBill, setHospitalBill] = useState(null);
@@ -133,20 +143,27 @@ const RecordsLandingPage = () => {
   const [patientId, setPatientId] = useState(null);
   const [representativeId, setRepresentativeId] = useState(null);
 
-  // --- NEW STATE FOR PLACE SUGGESTIONS ---
+  // Suggestions state for address fields
   const [municipalitySuggestions, setMunicipalitySuggestions] = useState([]);
   const [streetSuggestions, setStreetSuggestions] = useState([]);
   const [isMunicipalityLoading, setIsMunicipalityLoading] = useState(false);
   const [isStreetLoading, setIsStreetLoading] = useState(false);
 
-  // --- CORRECTED DEBOUNCED API CALL FUNCTION ---
+  // Wizard steps for the progress indicator
+  const steps = [
+    { name: "Patient Info", icon: User },
+    { name: "Request Details", icon: List },
+    { name: "Documents", icon: Upload },
+    { name: "Review", icon: Eye },
+  ];
+
+  // Utility function for fetching address suggestions with debouncing
   const fetchSuggestions = useCallback(
     async (query, searchType, updater) => {
       if (query.length < 3) {
         updater([]);
         return;
       }
-
       const setLoader =
         searchType === "municipality"
           ? setIsMunicipalityLoading
@@ -154,10 +171,8 @@ const RecordsLandingPage = () => {
       setLoader(true);
 
       const url = `https://nominatim.openstreetmap.org/search?q=${query}, Laguna, Philippines&format=json&limit=5&addressdetails=1&countrycodes=ph`;
-
       try {
         const res = await axios.get(url);
-
         const suggestions = res.data
           .filter(
             (item) =>
@@ -187,7 +202,7 @@ const RecordsLandingPage = () => {
     [showAlert]
   );
 
-  // --- NEW useEffect hooks for debouncing ---
+  // Debounce effects for address fields
   useEffect(() => {
     const handler = setTimeout(() => {
       if (municipality.length > 0) {
@@ -199,8 +214,7 @@ const RecordsLandingPage = () => {
       } else {
         setMunicipalitySuggestions([]);
       }
-    }, 500); // 500ms debounce delay
-
+    }, 500);
     return () => {
       clearTimeout(handler);
     };
@@ -218,59 +232,12 @@ const RecordsLandingPage = () => {
         setStreetSuggestions([]);
       }
     }, 500);
-
     return () => {
       clearTimeout(handler);
     };
   }, [street, municipality, fetchSuggestions]);
 
-  const fetchStats = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/api/requests/stats`);
-      const data = res.data;
-      setStats([
-        { title: "Total Requests", value: data.total, icon: FileText },
-        { title: "Pending Requests", value: data.pending, icon: Clock },
-        {
-          title: "Completed Requests",
-          value: data.completed,
-          icon: CheckCircle,
-        },
-        { title: "This Month", value: data.thisMonth, icon: CalendarDays },
-      ]);
-    } catch (err) {
-      console.error("Failed to fetch stats:", err);
-      showAlert("Failed to load statistics.", "error");
-    }
-  };
-
-  const handleProceedToPayment = (requestId) => {
-    const request = activities.find((a) => a.id === requestId);
-    if (request) {
-      const requestType = requestTypes.find((req) => req.name === request.type);
-      if (requestType) {
-        setRequestToPay({
-          ...request,
-          price: requestType.price,
-        });
-        setIsPaymentViewOpen(true);
-      } else {
-        showAlert(
-          "Price information not found for this request type.",
-          "error"
-        );
-      }
-    } else {
-      showAlert("Request details not found.", "error");
-    }
-  };
-
-  const handleClosePaymentView = () => {
-    setIsPaymentViewOpen(false);
-    setRequestToPay(null);
-    fetchRequests();
-  };
-
+  // Fetch request types on component load
   const fetchRequestTypes = useCallback(async () => {
     try {
       const res = await axios.get(
@@ -288,11 +255,25 @@ const RecordsLandingPage = () => {
     }
   }, [showAlert, type]);
 
+  // Fetch user activities on component load
+  const fetchRequests = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await axios.get(`${API_BASE}/api/requests/user/${userId}`);
+      setActivities(res.data);
+    } catch (error) {
+      console.error("Failed to fetch user requests:", error);
+      showAlert("Failed to load your past requests.", "error");
+    }
+  }, [userId, showAlert]);
+
+  // General useEffect for data fetching and socket handling
   useEffect(() => {
     if (!userId) return;
-    fetchStats();
     fetchRequestTypes();
+    fetchRequests();
 
+    // Check for login notifications
     const storedNotification = sessionStorage.getItem("loginNotification");
     if (storedNotification) {
       try {
@@ -304,33 +285,21 @@ const RecordsLandingPage = () => {
       }
     }
 
+    // Socket listener for new requests
     socket.on("newRequest", (data) => {
-      fetchStats();
-      if (data.user_id == userId) {
-        setActivities((prev) => [data, ...prev]);
+      if (data.user_id === userId) {
+        fetchRequests(); // Re-fetch to get the latest data
         showAlert("Your request status has been updated!", "info");
       }
     });
+
+    // Cleanup socket listener on unmount
     return () => {
       socket.off("newRequest");
     };
-  }, [userId, fetchStats, fetchRequestTypes, showAlert]);
+  }, [userId, showAlert, fetchRequests, fetchRequestTypes]);
 
-  const fetchRequests = async () => {
-    if (!userId) return;
-    try {
-      const res = await axios.get(`${API_BASE}/api/requests/user/${userId}`);
-      setActivities(res.data);
-    } catch (error) {
-      console.error("Failed to fetch user requests:", error);
-      showAlert("Failed to load your past requests.", "error");
-    }
-  };
-
-  useEffect(() => {
-    fetchRequests();
-  }, [userId, showAlert]);
-
+  // Fetch user info
   useEffect(() => {
     if (!userId) return;
     fetch(`${API_BASE}/api/users/${userId}`)
@@ -345,25 +314,11 @@ const RecordsLandingPage = () => {
       });
   }, [userId, showAlert]);
 
+  // Function to handle form submission
   const handleSubmit = async () => {
     setIsSubmitting(true);
-
     if (!userId) {
       showAlert("User not logged in.", "error");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const noFilesUploaded =
-      !medicalAbstract &&
-      !medicalRequest &&
-      !hospitalBill &&
-      !socialCaseStudy &&
-      !patientId &&
-      !representativeId;
-
-    if (!type || !details || noFilesUploaded || requestTypes.length === 0) {
-      showAlert("Please fill in all fields and upload a document.", "warning");
       setIsSubmitting(false);
       return;
     }
@@ -397,6 +352,7 @@ const RecordsLandingPage = () => {
 
       showAlert("Request submitted successfully!", "success");
 
+      // Reset form fields
       setType(requestTypes.length > 0 ? requestTypes[0].name : "");
       setDetails("");
       setPatientName("");
@@ -405,22 +361,98 @@ const RecordsLandingPage = () => {
       setStreet("");
       setMunicipality("");
       setHospitalAdmitted("");
-
       setMedicalAbstract(null);
       setMedicalRequest(null);
       setHospitalBill(null);
       setSocialCaseStudy(null);
       setPatientId(null);
       setRepresentativeId(null);
-      setFile(null);
 
       fetchRequests();
+      setCurrentStep(0); // Reset wizard to the first step
     } catch (error) {
       console.error(error);
       showAlert("Failed to submit request.", "error");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Logic for navigation between wizard steps
+  const handleNext = () => {
+    // Client-side validation before moving to the next step
+    switch (currentStep) {
+      case 0:
+        if (
+          !patientName ||
+          !age ||
+          !gender ||
+          !street ||
+          !municipality ||
+          !hospitalAdmitted
+        ) {
+          showAlert("Please fill in all patient information.", "warning");
+          return;
+        }
+        break;
+      case 1:
+        if (!type || !details) {
+          showAlert(
+            "Please select a request type and provide details.",
+            "warning"
+          );
+          return;
+        }
+        break;
+      case 2:
+        const noFilesUploaded =
+          !medicalAbstract &&
+          !medicalRequest &&
+          !hospitalBill &&
+          !socialCaseStudy &&
+          !patientId &&
+          !representativeId;
+        if (noFilesUploaded) {
+          showAlert("Please upload at least one document.", "warning");
+          return;
+        }
+        break;
+      default:
+        break;
+    }
+    setCurrentStep(currentStep + 1);
+  };
+
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
+  // Handlers for payments, logout, and status colors
+  const handleProceedToPayment = (requestId) => {
+    const request = activities.find((a) => a.id === requestId);
+    if (request) {
+      const requestType = requestTypes.find((req) => req.name === request.type);
+      if (requestType) {
+        setRequestToPay({
+          ...request,
+          price: requestType.price,
+        });
+        setIsPaymentViewOpen(true);
+      } else {
+        showAlert(
+          "Price information not found for this request type.",
+          "error"
+        );
+      }
+    } else {
+      showAlert("Request details not found.", "error");
+    }
+  };
+
+  const handleClosePaymentView = () => {
+    setIsPaymentViewOpen(false);
+    setRequestToPay(null);
+    fetchRequests();
   };
 
   const handleLogout = () => {
@@ -444,10 +476,7 @@ const RecordsLandingPage = () => {
     }
   };
 
-  const selectedRequestType = requestTypes.find((req) => req.name === type);
-  const selectedPrice = selectedRequestType ? selectedRequestType.price : null;
-  const fileName = file ? file.name : "No file selected";
-
+  // Return the PaymentMethod component if the payment view is open
   if (isPaymentViewOpen && requestToPay) {
     return (
       <PaymentMethod
@@ -461,8 +490,34 @@ const RecordsLandingPage = () => {
     );
   }
 
+  // File upload component for cleaner code
+  const FileInput = ({ label, file, setFile }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}
+      </label>
+      <label className="relative w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+        <div className="flex flex-col items-center">
+          <UploadCloud className="w-8 h-8 text-gray-400" />
+          <span className="mt-2 text-sm text-gray-600">
+            {file ? file.name : `Click to upload ${label}`}
+          </span>
+          <span className="text-xs text-gray-400 mt-1">
+            (Max file size 5MB)
+          </span>
+        </div>
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
+          disabled={isSubmitting}
+          className="sr-only absolute"
+        />
+      </label>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 antialiased">
       {systemAlert && (
         <SystemAlert
           message={systemAlert.message}
@@ -472,7 +527,7 @@ const RecordsLandingPage = () => {
         />
       )}
 
-      <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-20">
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-gray-900 ml-2">
             Resident Records
@@ -496,91 +551,86 @@ const RecordsLandingPage = () => {
         </div>
       </header>
 
-      <main className="p-6 md:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Create New Request
-            </h2>
+      <main className="p-4 md:p-8 lg:p-10 flex flex-col lg:flex-row gap-6">
+        {/* Main wizard container */}
+        <div className="lg:flex-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-all duration-300">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Create New Request
+          </h2>
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Request Type
-                </label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  disabled={isSubmitting || requestTypes.length === 0}
-                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          {/* Progress Indicator */}
+          <div className="flex justify-between items-center mb-8 border-b-2 border-gray-200 pb-4">
+            {steps.map((step, index) => (
+              <div key={index} className="flex flex-col items-center flex-1">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                    ${
+                      index <= currentStep
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
                 >
-                  {requestTypes.length === 0 ? (
-                    <option value="">No request types available</option>
-                  ) : (
-                    requestTypes.map((reqType) => (
-                      <option key={reqType.id} value={reqType.name}>
-                        {reqType.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-                {requestTypes.length === 0 && (
-                  <p className="text-xs text-red-500 mt-2">
-                    No request types are currently published.
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Patient Name
-                  </label>
-                  <input
-                    type="text"
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    disabled={isSubmitting}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <step.icon className="w-5 h-5" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Age
-                  </label>
+                <span
+                  className={`mt-2 text-center text-sm font-medium transition-colors duration-300
+                    ${
+                      index <= currentStep ? "text-blue-600" : "text-gray-500"
+                    } hidden sm:block`}
+                >
+                  {step.name}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Wizard Step Content */}
+          <div className="h-[calc(100vh-450px)] relative overflow-y-auto">
+            {/* Step 1: Patient Information */}
+            <div
+              className={`absolute top-0 left-0 w-full p-2 transition-all duration-500
+                ${
+                  currentStep === 0
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 translate-x-full"
+                }`}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Patient Information
+              </h3>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Patient Name"
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="number"
+                    placeholder="Age"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Gender
-                  </label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
                 </div>
-                {/* --- MUNICIPALITY/CITY INPUT WITH SUGGESTIONS --- */}
                 <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Municipality/City
-                  </label>
                   <input
                     type="text"
+                    placeholder="Municipality/City"
                     value={municipality}
                     onChange={(e) => setMunicipality(e.target.value)}
                     disabled={isSubmitting}
@@ -609,157 +659,251 @@ const RecordsLandingPage = () => {
                       </ul>
                     )}
                 </div>
-              </div>
-
-              {/* --- STREET/BARANGAY INPUT WITH SUGGESTIONS --- */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Street/Barangay
-                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Street/Barangay"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {isStreetLoading && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 p-2 text-center text-sm text-gray-500">
+                      Loading...
+                    </div>
+                  )}
+                  {!isStreetLoading && streetSuggestions.length > 0 && (
+                    <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                      {streetSuggestions.map((suggestion, index) => (
+                        <li
+                          key={index}
+                          onClick={() => {
+                            setStreet(suggestion.barangay || suggestion.street);
+                            setStreetSuggestions([]);
+                          }}
+                          className="p-2 cursor-pointer hover:bg-blue-50 transition-colors text-sm"
+                        >
+                          {suggestion.barangay}, {suggestion.municipality},
+                          Laguna, Philippines
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <input
                   type="text"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  disabled={isSubmitting}
-                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                {isStreetLoading && (
-                  <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 p-2 text-center text-sm text-gray-500">
-                    Loading...
-                  </div>
-                )}
-                {!isStreetLoading && streetSuggestions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
-                    {streetSuggestions.map((suggestion, index) => (
-                      <li
-                        key={index}
-                        onClick={() => {
-                          setStreet(suggestion.barangay || suggestion.street);
-                          setStreetSuggestions([]);
-                        }}
-                        className="p-2 cursor-pointer hover:bg-blue-50 transition-colors text-sm"
-                      >
-                        {suggestion.barangay}, {suggestion.municipality},
-                        Laguna, Philippines
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hospital Admitted
-                </label>
-                <input
-                  type="text"
+                  placeholder="Hospital Admitted"
                   value={hospitalAdmitted}
                   onChange={(e) => setHospitalAdmitted(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Request Details
-                </label>
+            {/* Step 2: Request Details */}
+            <div
+              className={`absolute top-0 left-0 w-full p-2 transition-all duration-500
+                ${
+                  currentStep === 1
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 translate-x-full"
+                }`}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Request Details
+              </h3>
+              <div className="space-y-4">
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  disabled={isSubmitting || requestTypes.length === 0}
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  {requestTypes.length === 0 ? (
+                    <option value="">No request types available</option>
+                  ) : (
+                    requestTypes.map((reqType) => (
+                      <option key={reqType.id} value={reqType.name}>
+                        {reqType.name}
+                      </option>
+                    ))
+                  )}
+                </select>
                 <textarea
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 resize-none h-28 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 resize-none h-48 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="Provide detailed information about your request..."
                 />
               </div>
+            </div>
 
-              {[
-                {
-                  label: "Medical Abstract/Medical Certificate",
-                  state: medicalAbstract,
-                  set: setMedicalAbstract,
-                },
-                {
-                  label: "Medical Request/Prescription",
-                  state: medicalRequest,
-                  set: setMedicalRequest,
-                },
-                {
-                  label: "Hospital Final Bill/Quotation",
-                  state: hospitalBill,
-                  set: setHospitalBill,
-                },
-                {
-                  label: "Social Case Study Report",
-                  state: socialCaseStudy,
-                  set: setSocialCaseStudy,
-                },
-                { label: "Patient ID", state: patientId, set: setPatientId },
-                {
-                  label: "Representative ID",
-                  state: representativeId,
-                  set: setRepresentativeId,
-                },
-              ].map((doc, idx) => (
-                <div key={idx}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {doc.label}
-                  </label>
-                  <label className="relative w-full flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex flex-col items-center">
-                      <UploadCloud className="w-8 h-8 text-gray-400" />
-                      <span className="mt-2 text-sm text-gray-600">
-                        {doc.state
-                          ? doc.state.name
-                          : `Click to upload ${doc.label}`}
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1">
-                        (Max file size 5MB)
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      onChange={(e) => doc.set(e.target.files[0])}
-                      disabled={isSubmitting}
-                      className="sr-only absolute"
-                    />
-                  </label>
-                </div>
-              ))}
+            {/* Step 3: Document Uploads */}
+            <div
+              className={`absolute top-0 left-0 w-full p-2 transition-all duration-500
+                ${
+                  currentStep === 2
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 translate-x-full"
+                }`}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Upload Supporting Documents
+              </h3>
+              <div className="space-y-4">
+                <FileInput
+                  label="Medical Abstract/Medical Certificate"
+                  file={medicalAbstract}
+                  setFile={setMedicalAbstract}
+                />
+                <FileInput
+                  label="Medical Request/Prescription"
+                  file={medicalRequest}
+                  setFile={setMedicalRequest}
+                />
+                <FileInput
+                  label="Hospital Final Bill/Quotation"
+                  file={hospitalBill}
+                  setFile={setHospitalBill}
+                />
+                <FileInput
+                  label="Social Case Study Report"
+                  file={socialCaseStudy}
+                  setFile={setSocialCaseStudy}
+                />
+                <FileInput
+                  label="Patient ID"
+                  file={patientId}
+                  setFile={setPatientId}
+                />
+                <FileInput
+                  label="Representative ID"
+                  file={representativeId}
+                  setFile={setRepresentativeId}
+                />
+              </div>
+            </div>
 
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || requestTypes.length === 0}
-                  className={`px-6 py-2 rounded-lg text-white text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
-                    isSubmitting || requestTypes.length === 0
-                      ? "bg-blue-300 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Submit Request</span>
-                    </>
+            {/* Step 4: Review and Submit */}
+            <div
+              className={`absolute top-0 left-0 w-full p-2 transition-all duration-500
+                ${
+                  currentStep === 3
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 translate-x-full"
+                }`}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Review and Confirm
+              </h3>
+              <div className="space-y-4 text-sm bg-gray-50 p-4 rounded-lg">
+                <p>
+                  <strong>Request Type:</strong> {type}
+                </p>
+                <p>
+                  <strong>Patient Name:</strong> {patientName}
+                </p>
+                <p>
+                  <strong>Age:</strong> {age}
+                </p>
+                <p>
+                  <strong>Gender:</strong> {gender}
+                </p>
+                <p>
+                  <strong>Address:</strong> {street}, {municipality}, Laguna,
+                  Philippines
+                </p>
+                <p>
+                  <strong>Hospital Admitted:</strong> {hospitalAdmitted}
+                </p>
+                <p>
+                  <strong>Details:</strong> {details}
+                </p>
+                <p>
+                  <strong>Uploaded Files:</strong>
+                </p>
+                <ul className="list-disc list-inside ml-4">
+                  {medicalAbstract && (
+                    <li>Medical Abstract: {medicalAbstract.name}</li>
                   )}
-                </button>
+                  {medicalRequest && (
+                    <li>Medical Request: {medicalRequest.name}</li>
+                  )}
+                  {hospitalBill && <li>Hospital Bill: {hospitalBill.name}</li>}
+                  {socialCaseStudy && (
+                    <li>Social Case Study: {socialCaseStudy.name}</li>
+                  )}
+                  {patientId && <li>Patient ID: {patientId.name}</li>}
+                  {representativeId && (
+                    <li>Representative ID: {representativeId.name}</li>
+                  )}
+                </ul>
               </div>
             </div>
           </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6 border-t-2 border-gray-200 mt-4">
+            {currentStep > 0 && (
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 rounded-lg text-gray-600 border border-gray-300 hover:bg-gray-100 transition-colors flex items-center space-x-2 text-sm font-semibold"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </button>
+            )}
+
+            {currentStep < steps.length - 1 && (
+              <button
+                onClick={handleNext}
+                className={`ml-auto px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
+                  isSubmitting || requestTypes.length === 0
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+                disabled={isSubmitting || requestTypes.length === 0}
+              >
+                <span>Next</span>
+                <ArrowLeft className="w-4 h-4 transform rotate-180" />
+              </button>
+            )}
+
+            {currentStep === steps.length - 1 && (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || requestTypes.length === 0}
+                className={`ml-auto px-6 py-2 rounded-lg text-white text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
+                  isSubmitting || requestTypes.length === 0
+                    ? "bg-green-300 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Submit Request</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
+        {/* Sidebar content */}
+        <div className="lg:w-1/3 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Recent Activity
             </h3>
-                   {" "}
             <div className="space-y-4">
               {activities.length === 0 ? (
                 <p className="text-gray-500 text-sm">No recent activity yet.</p>

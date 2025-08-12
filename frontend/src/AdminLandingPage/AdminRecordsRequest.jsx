@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import {
@@ -802,6 +802,19 @@ const AdminRecordsRequest = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Use a useMemo hook to group the filtered requests by user.
+  // This memoized value will only be re-calculated when `filteredRequests` changes.
+  const groupedRequests = useMemo(() => {
+    return filteredRequests.reduce((groups, request) => {
+      const user = request.resident_name || "Unknown Resident";
+      if (!groups[user]) {
+        groups[user] = [];
+      }
+      groups[user].push(request);
+      return groups;
+    }, {});
+  }, [filteredRequests]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {toast && (
@@ -847,79 +860,114 @@ const AdminRecordsRequest = () => {
                   <option value="completed">Completed</option>
                   <option value="rejected">Rejected</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  setIsRefreshing(true);
+                  fetchRequests().then(() => setIsRefreshing(false));
+                  fetchStats();
+                }}
+                className={`p-3 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors ${
+                  isRefreshing ? "animate-spin" : ""
+                }`}
+                title="Refresh"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => navigate("/admin/dashboard")}
+                className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <ArrowUpRight className="w-5 h-5" />
+                <span>Go to Dashboard</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Requests List Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <List className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Request Management
-                </h2>
-                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-                  {filteredRequests.length}{" "}
-                  {filteredRequests.length === 1 ? "request" : "requests"}
-                </span>
-              </div>
-
-              <button
-                onClick={() => {
-                  fetchRequests();
-                  fetchStats();
-                }}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh</span>
-              </button>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-start space-x-4">
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+              <List className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                Total Requests
+              </p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
           </div>
-
-          <div className="p-6">
-            {filteredRequests.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[70vh] overflow-y-auto pr-2">
-                {filteredRequests.map((request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                    onViewDetails={openModal}
-                    onUpdateStatus={handleUpdateStatus}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No requests found
-                </h3>
-                <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                  {searchTerm || statusFilter !== "all"
-                    ? "No requests match your current search criteria. Try adjusting your filters."
-                    : "No requests have been submitted yet. New requests will appear here when submitted."}
-                </p>
-                {(searchTerm || statusFilter !== "all") && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("all");
-                    }}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            )}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-start space-x-4">
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Pending</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.pending}
+              </p>
+            </div>
           </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-start space-x-4">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Completed</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.completed}
+              </p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-start space-x-4">
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                This Month's Requests
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.thisMonth}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Grouped Requests List */}
+        <div className="space-y-8">
+          {Object.keys(groupedRequests).length > 0 ? (
+            Object.keys(groupedRequests).map((userName) => (
+              <div key={userName}>
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center space-x-2">
+                  <User className="w-6 h-6 text-gray-600" />
+                  <span>{userName}</span>
+                  <span className="text-base text-gray-500 font-normal">
+                    ({groupedRequests[userName].length} requests)
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {groupedRequests[userName].map((request) => (
+                    <RequestCard
+                      key={request.id}
+                      request={request}
+                      onViewDetails={openModal}
+                      onUpdateStatus={handleUpdateStatus}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-10">
+              <p className="text-lg font-semibold mb-2">No requests found.</p>
+              <p>Try adjusting your search or filter settings.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>
