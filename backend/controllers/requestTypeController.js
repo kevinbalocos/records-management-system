@@ -9,8 +9,8 @@ exports.createRequestType = (req, res) => {
   }
 
   const query = `
-    INSERT INTO request_types (name, description, price, status)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO request_types (name, description, status)
+    VALUES (?, ?, ?)
   `;
 
   // Added price to the query parameters
@@ -75,12 +75,12 @@ exports.updateRequestType = (req, res) => {
 
   const query = `
     UPDATE request_types
-    SET name = ?, description = ?, price = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+    SET name = ?, description = ?, status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `;
 
   // Added price to the query parameters
-  db.query(query, [name, description, price, status, id], (err, result) => {
+  db.query(query, [name, description, status, id], (err, result) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({ message: "Request type with this name already exists." });

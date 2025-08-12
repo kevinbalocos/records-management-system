@@ -153,7 +153,7 @@ const RequestTypeFormModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit({ id: initialData?.id, name, description, price, status }); // Added price
+    await onSubmit({ id: initialData?.id, name, description, status }); // Added price
     setLoading(false);
     onClose();
   };
@@ -306,8 +306,7 @@ const AdminRequestTypes = () => {
         // If updating, send all fields including price and status
         await axios.put(`${API_BASE}/api/request-types/${data.id}`, {
           name: data.name,
-          description: data.description,
-          price: data.price, // <-- ADD THIS LINE
+          description: data.description, // <-- ADD THIS LINE
           status: data.status,
         });
         showAlert("Request type updated successfully!", "success");
@@ -315,8 +314,7 @@ const AdminRequestTypes = () => {
         // If creating, send the name, description, and price
         await axios.post(`${API_BASE}/api/request-types`, {
           name: data.name,
-          description: data.description,
-          price: data.price, // <-- ADD THIS LINE
+          description: data.description, // <-- ADD THIS LINE
         });
         showAlert("Request type created successfully as draft!", "success");
       }
