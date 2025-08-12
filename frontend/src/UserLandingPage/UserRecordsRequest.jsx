@@ -709,14 +709,27 @@ const RecordsLandingPage = () => {
                             )}
                           {activity.status === "completed" &&
                             activity.approval_file && (
-                              <a
-                                href={`${API_BASE}/uploads/${activity.approval_file}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block mt-2 text-xs text-green-600 hover:text-green-800 transition-colors hover:underline"
-                              >
-                                Download Document
-                              </a>
+                              <div className="mt-2 flex items-center space-x-4 text-green-600 text-xs font-semibold">
+                                {/* Inline amount released */}
+                                {activity.approval_type === "cash_payment" &&
+                                  activity.cash_amount && (
+                                    <span>
+                                      Amount Released: ₱
+                                      {Number(
+                                        activity.cash_amount
+                                      ).toLocaleString()}
+                                    </span>
+                                  )}
+
+                                <a
+                                  href={`${API_BASE}/uploads/${activity.approval_file}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:text-green-800 hover:underline"
+                                >
+                                  Download Document
+                                </a>
+                              </div>
                             )}
                         </div>
                       </div>

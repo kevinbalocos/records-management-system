@@ -248,6 +248,9 @@ const RequestCard = ({ request, onViewDetails, onUpdateStatus }) => {
 const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [approvalType, setApprovalType] = useState("");
+  const [amount, setAmount] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
+  const finalAmount = customAmount || amount;
 
   if (!isOpen || !request) return null;
 
@@ -274,11 +277,20 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
       return;
     }
 
+    if (approvalType === "cash_payment" && !finalAmount) {
+      alert("Please select or enter cash amount.");
+      return;
+    }
+
     setIsUploading(true);
 
     const formData = new FormData();
-    formData.append("approval_type", approvalType); // cash_payment or guarantee_letter
-    formData.append("approval_file", file); // must match backend's upload.single("approval_file")
+    formData.append("approval_type", approvalType);
+    formData.append("approval_file", file);
+
+    if (approvalType === "cash_payment") {
+      formData.append("cash_amount", finalAmount);
+    }
 
     try {
       await axios.post(
@@ -561,6 +573,56 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                   </select>
                 </div>
 
+                {approvalType === "cash_payment" && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount
+                    </label>
+
+                    {/* Amount dropdown with custom option */}
+                    <select
+                      value={amount}
+                      onChange={(e) => {
+                        setAmount(e.target.value);
+                        setCustomAmount(""); // clear custom input if dropdown selected
+                      }}
+                      className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mb-2"
+                    >
+                      <option value="">-- Select amount --</option>
+                      <option value="100">₱100</option>
+                      <option value="500">₱500</option>
+                      <option value="1000">₱1,000</option>
+                      <option value="5000">₱5,000</option>
+                      <option value="10000">₱10,000</option>
+                      <option value="50000">₱50,000</option>
+                      <option value="100000">₱100,000</option>
+                      <option value="500000">₱500,000</option>
+                      <option value="1000000">₱1,000,000</option>
+                      <option value="custom">
+                        -- Enter custom amount --
+                      </option>{" "}
+                      {/* Custom option */}
+                    </select>
+
+                    {/* Show input only if custom is selected */}
+                    {amount === "custom" && (
+                      <input
+                        type="number"
+                        min="100"
+                        max="1000000"
+                        placeholder="Type amount here"
+                        value={customAmount}
+                        onChange={(e) => {
+                          setCustomAmount(e.target.value);
+                          // Optionally keep dropdown cleared when typing
+                          // setAmount("");
+                        }}
+                        className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                    )}
+                  </div>
+                )}
+
                 {/* File Upload based on selection */}
                 {approvalType && (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
@@ -571,7 +633,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                       className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer cursor-pointer"
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                      {approvalType === "cash"
+                      {approvalType === "cash_payment"
                         ? "Upload the receipt of cash released."
                         : "Upload the signed guarantee letter by Cong."}
                     </p>
@@ -608,6 +670,15 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
                         ? "Receipt of Cash Released"
                         : "Signed Guarantee Letter"}
                     </p>
+
+                    {/* Show amount if cash_payment */}
+                    {request.approval_type === "cash_payment" &&
+                      request.cash_amount && (
+                        <p className="mt-1 text-sm font-semibold text-emerald-800">
+                          Amount Released: ₱
+                          {Number(request.cash_amount).toLocaleString()}
+                        </p>
+                      )}
                   </div>
                   <Download className="w-4 h-4 text-emerald-600" />
                 </button>

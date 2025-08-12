@@ -17,15 +17,36 @@ exports.createRequest = (req, res) => {
 
   // files from multer.fields()
   const files = req.files || {};
-  const medicalAbstractPath = files.medical_abstract ? `records_request/${files.medical_abstract[0].filename}` : null;
-  const medicalRequestPath = files.medical_request ? `records_request/${files.medical_request[0].filename}` : null;
-  const hospitalBillPath = files.hospital_bill ? `records_request/${files.hospital_bill[0].filename}` : null;
-  const socialCaseStudyPath = files.social_case_study ? `records_request/${files.social_case_study[0].filename}` : null;
-  const patientIdPath = files.patient_id_file ? `records_request/${files.patient_id_file[0].filename}` : null;
-  const representativeIdPath = files.representative_id_file ? `records_request/${files.representative_id_file[0].filename}` : null;
+  const medicalAbstractPath = files.medical_abstract
+    ? `records_request/${files.medical_abstract[0].filename}`
+    : null;
+  const medicalRequestPath = files.medical_request
+    ? `records_request/${files.medical_request[0].filename}`
+    : null;
+  const hospitalBillPath = files.hospital_bill
+    ? `records_request/${files.hospital_bill[0].filename}`
+    : null;
+  const socialCaseStudyPath = files.social_case_study
+    ? `records_request/${files.social_case_study[0].filename}`
+    : null;
+  const patientIdPath = files.patient_id_file
+    ? `records_request/${files.patient_id_file[0].filename}`
+    : null;
+  const representativeIdPath = files.representative_id_file
+    ? `records_request/${files.representative_id_file[0].filename}`
+    : null;
 
   // basic validation
-  if (!type || !user_id || !patient_name || !age || !gender || !street || !municipality || !hospital_admitted) {
+  if (
+    !type ||
+    !user_id ||
+    !patient_name ||
+    !age ||
+    !gender ||
+    !street ||
+    !municipality ||
+    !hospital_admitted
+  ) {
     return res.status(400).json({ message: "Missing required fields." });
   }
 
@@ -39,15 +60,30 @@ exports.createRequest = (req, res) => {
   `;
 
   const params = [
-    user_id, type, details, patient_name, age, gender, street, municipality, hospital_admitted,
-    medicalAbstractPath, medicalRequestPath, hospitalBillPath,
-    socialCaseStudyPath, patientIdPath, representativeIdPath, "pending"
+    user_id,
+    type,
+    details,
+    patient_name,
+    age,
+    gender,
+    street,
+    municipality,
+    hospital_admitted,
+    medicalAbstractPath,
+    medicalRequestPath,
+    hospitalBillPath,
+    socialCaseStudyPath,
+    patientIdPath,
+    representativeIdPath,
+    "pending",
   ];
 
   db.query(query, params, (err, result) => {
     if (err) {
       console.error("Failed to insert request:", err);
-      return res.status(500).json({ message: "Server error while saving request" });
+      return res
+        .status(500)
+        .json({ message: "Server error while saving request" });
     }
 
     const io = req.app.get("io");
@@ -102,7 +138,8 @@ exports.getUserRequests = (req, res) => {
       status,
       created_at,
       approval_file,
-      approval_type
+      approval_type,
+      cash_amount
     FROM requests
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -139,6 +176,7 @@ exports.getAllRequests = (req, res) => {
       r.created_at,
       approval_file,
       approval_type,
+      cash_amount,
       u.first_name,
       u.last_name,
       CONCAT(u.first_name, ' ', u.last_name) AS resident_name
@@ -160,18 +198,22 @@ exports.updateRequestStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  db.query("UPDATE requests SET status = ? WHERE id = ?", [status, id], (err, result) => {
-    if (err) {
-      console.error("Error updating status:", err);
-      return res.status(500).json({ message: "Error updating status" });
+  db.query(
+    "UPDATE requests SET status = ? WHERE id = ?",
+    [status, id],
+    (err, result) => {
+      if (err) {
+        console.error("Error updating status:", err);
+        return res.status(500).json({ message: "Error updating status" });
+      }
+      res.json({ message: "Status updated" });
     }
-    res.json({ message: "Status updated" });
-  });
+  );
 };
 
 exports.approveRequest = (req, res) => {
   const { id } = req.params;
-  const { approval_type } = req.body;
+  const { approval_type, cash_amount } = req.body; // added cash_amount
   const filePath = req.file ? `records_request/${req.file.filename}` : null;
 
   if (!approval_type) {
@@ -182,15 +224,33 @@ exports.approveRequest = (req, res) => {
     return res.status(400).json({ message: "File upload is required" });
   }
 
+  if (approval_type === "cash_payment") {
+    if (!cash_amount) {
+      return res
+        .status(400)
+        .json({ message: "Cash amount is required for cash payment approval" });
+    }
+  }
+
   let status = "completed";
 
-  const query = `
+  // Build the query dynamically depending on approval_type
+  let query = `
     UPDATE requests
     SET approval_type = ?, approval_file = ?, status = ?
-    WHERE id = ?
   `;
 
-  db.query(query, [approval_type, filePath, status, id], (err) => {
+  const params = [approval_type, filePath, status];
+
+  if (approval_type === "cash_payment") {
+    query += `, cash_amount = ?`;
+    params.push(cash_amount);
+  }
+
+  query += ` WHERE id = ?`;
+  params.push(id);
+
+  db.query(query, params, (err) => {
     if (err) {
       console.error("Error approving request:", err);
       return res.status(500).json({ message: "Server error" });
