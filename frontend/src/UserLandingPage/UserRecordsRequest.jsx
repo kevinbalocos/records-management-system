@@ -709,11 +709,11 @@ const RecordsLandingPage = () => {
                             )}
                           {activity.status === "completed" &&
                             activity.approval_file && (
-                              <div className="mt-2 flex items-center space-x-4 text-green-600 text-xs font-semibold">
+                              <div className="mt-2 flex items-center gap-4 text-green-600 text-xs font-semibold">
                                 {/* Inline amount released */}
                                 {activity.approval_type === "cash_payment" &&
                                   activity.cash_amount && (
-                                    <span>
+                                    <span className="whitespace-nowrap">
                                       Amount Released: ₱
                                       {Number(
                                         activity.cash_amount
@@ -725,7 +725,7 @@ const RecordsLandingPage = () => {
                                   href={`${API_BASE}/uploads/${activity.approval_file}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="hover:text-green-800 hover:underline"
+                                  className="whitespace-nowrap hover:text-green-800 hover:underline"
                                 >
                                   Download Document
                                 </a>

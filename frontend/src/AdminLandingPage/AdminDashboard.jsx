@@ -22,6 +22,10 @@ import {
   Users,
   Filter,
   Download,
+  DollarSign,
+  MapPin,
+  Shield,
+  CreditCard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
@@ -45,17 +49,40 @@ import {
   AreaChart,
 } from "recharts";
 
+export const PesoSign = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={props.size || 24}
+    height={props.size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    {/* Vertical line */}
+    <path d="M5 20V4" />
+    
+    {/* P shape - top curve */}
+    <path d="M5 4h7a4 4 0 0 1 0 8H5" />
+    
+    {/* Double horizontal lines - characteristic of peso sign */}
+    <path d="M3 7h12" />
+    <path d="M3 10h12" />
+  </svg>
+);
+
 // Set up the socket.io client to connect to the backend
 const socket = io("http://localhost:5000");
 
 // A reusable Toast component for user notifications
 const Toast = ({ message, type, onClose, isVisible, isDarkMode }) => {
-  // Added isDarkMode prop
   const getToastStyles = () => {
     const baseStyles =
       "flex items-center p-4 rounded-lg shadow-lg border-l-4 min-w-80 max-w-md";
 
-    // Dynamic styles based on isDarkMode prop
     let typeStyles = "";
     if (isDarkMode) {
       switch (type) {
@@ -90,7 +117,6 @@ const Toast = ({ message, type, onClose, isVisible, isDarkMode }) => {
   };
 
   const getIcon = () => {
-    // Icons also adapt based on isDarkMode
     const iconColor = isDarkMode ? "text-gray-400" : "text-gray-500";
     switch (type) {
       case "success":
@@ -182,22 +208,22 @@ const useToast = () => {
 // Tailwind CSS classes for different request statuses
 const statusClasses = {
   pending: "text-yellow-600 bg-yellow-100 border-yellow-200",
+  approved: "text-blue-600 bg-blue-100 border-blue-200",
   completed: "text-green-600 bg-green-100 border-green-200",
   rejected: "text-red-600 bg-red-100 border-red-200",
 };
 
 // Enhanced color palettes
 const CHART_COLORS = {
-  primary: ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a7f3d0"], // Teal/Cyan shades
-  gradient: ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"], // Indigo/Purple shades
-  warm: ["#f59e0b", "#f97316", "#ef4444", "#ec4899", "#8b5cf6"], // Orange/Red/Pink/Purple
-  cool: ["#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"], // Green/Cyan/Blue/Indigo/Purple
-  professional: ["#1e293b", "#374151", "#6b7280", "#9ca3af", "#d1d5db"], // Gray shades
+  primary: ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a7f3d0"],
+  gradient: ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"],
+  warm: ["#f59e0b", "#f97316", "#ef4444", "#ec4899", "#8b5cf6"],
+  cool: ["#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6"],
+  professional: ["#1e293b", "#374151", "#6b7280", "#9ca3af", "#d1d5db"],
 };
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label, formatter, isDarkMode }) => {
-  // Added isDarkMode prop
   if (active && payload && payload.length) {
     return (
       <div
@@ -241,7 +267,6 @@ const CustomTooltip = ({ active, payload, label, formatter, isDarkMode }) => {
 
 // Custom Legend Component
 const CustomLegend = ({ payload, isDarkMode }) => {
-  // Added isDarkMode prop
   return (
     <div className="flex flex-wrap justify-center gap-4 mt-4">
       {payload.map((entry, index) => (
@@ -270,7 +295,7 @@ const ChartContainer = ({
   children,
   className = "",
   actions = null,
-  isDarkMode, // Added isDarkMode prop
+  isDarkMode,
 }) => (
   <div
     className={`rounded-2xl shadow-lg border overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
@@ -310,9 +335,53 @@ const ChartContainer = ({
   </div>
 );
 
+// Enhanced Stats Card Component
+const StatsCard = ({ title, stats, icon: Icon, color, isDarkMode }) => (
+  <div
+    className={`rounded-2xl shadow-lg p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
+                ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700 text-gray-100"
+                    : "bg-white border-gray-100"
+                }`}
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className={`p-3 rounded-full ${color} bg-opacity-80 shadow-md`}>
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <h3
+        className={`text-lg font-bold ${
+          isDarkMode ? "text-white" : "text-gray-900"
+        }`}
+      >
+        {title}
+      </h3>
+    </div>
+    <div className="space-y-3">
+      {stats.map((stat, index) => (
+        <div key={index} className="flex justify-between items-center">
+          <span
+            className={`text-sm font-medium ${
+              isDarkMode ? "text-gray-400" : "text-gray-600"
+            }`}
+          >
+            {stat.label}:
+          </span>
+          <span
+            className={`text-lg font-bold ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {stat.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 // Main Admin Dashboard component
 const AdminDashboard = ({ isDarkMode }) => {
-  // Accept isDarkMode prop
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [userInfo, setUserInfo] = useState({});
@@ -324,16 +393,17 @@ const AdminDashboard = ({ isDarkMode }) => {
   const [adminFile, setAdminFile] = useState(null);
   const fileInputRef = useRef(null);
 
-  // New states for drill-down
-  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
-  const [selectedAssistanceType, setSelectedAssistanceType] = useState("");
-  const [breakdownData, setBreakdownData] = useState(null); // Data for the breakdown modal
-
-  // States for chart data
+  // Chart data states
+  const [
+    cashAssistanceByMunicipalityData,
+    setCashAssistanceByMunicipalityData,
+  ] = useState([]);
+  const [cashAssistanceByBarangayData, setCashAssistanceByBarangayData] =
+    useState([]);
+  const [guaranteeLetterByBarangayData, setGuaranteeLetterByBarangayData] =
+    useState([]);
   const [requestsByTypeData, setRequestsByTypeData] = useState([]);
-  const [requestsByStatusData, setRequestsByStatusData] = useState([]);
-  const [requestsOverTimeData, setRequestsOverTimeData] = useState([]);
-  const [completionRateData, setCompletionRateData] = useState([]);
+  const [monthlyTrendsData, setMonthlyTrendsData] = useState([]);
 
   const [activeChart, setActiveChart] = useState("all");
   const [animationClass, setAnimationClass] = useState("");
@@ -346,9 +416,8 @@ const AdminDashboard = ({ isDarkMode }) => {
   const assistanceTypeMap = {
     MAIP: "Medical Assistance for Indigent Patients",
     AICS: "Assistance to Individuals in Crisis Situation",
-    "Medical Assistance": "Medical Assistance", // Assuming this is distinct if explicitly mentioned
+    "Medical Assistance": "Medical Assistance",
     Others: "Others",
-    // Keep existing types if they are still relevant for other requests
     Maintenance: "Maintenance",
     Security: "Security",
     Amenities: "Amenities",
@@ -357,12 +426,86 @@ const AdminDashboard = ({ isDarkMode }) => {
 
   // Function to process raw request data into chart-friendly formats
   const processRequestDataForCharts = useCallback((allRequests) => {
+    // Cash Assistance by Municipality
+    const municipalityCashData = allRequests.reduce((acc, request) => {
+      if (
+        request.cash_amount &&
+        request.municipality &&
+        request.approval_type === "cash_payment"
+      ) {
+        acc[request.municipality] =
+          (acc[request.municipality] || 0) + parseFloat(request.cash_amount);
+      }
+      return acc;
+    }, {});
+
+    setCashAssistanceByMunicipalityData(
+      Object.keys(municipalityCashData)
+        .map((municipality) => ({
+          municipality: municipality,
+          amount: municipalityCashData[municipality],
+        }))
+        .sort((a, b) => b.amount - a.amount)
+    );
+
+    // Cash Assistance by Barangay (simulated data - replace with actual barangay field)
+    const barangayCashData = allRequests.reduce((acc, request) => {
+      if (
+        request.cash_amount &&
+        request.barangay &&
+        request.approval_type === "cash_payment"
+      ) {
+        acc[request.barangay] =
+          (acc[request.barangay] || 0) + parseFloat(request.cash_amount);
+      } else if (
+        request.cash_amount &&
+        request.approval_type === "cash_payment"
+      ) {
+        // Fallback to municipality if no barangay field
+        const barangayName = `${request.municipality} Center`;
+        acc[barangayName] =
+          (acc[barangayName] || 0) + parseFloat(request.cash_amount);
+      }
+      return acc;
+    }, {});
+
+    setCashAssistanceByBarangayData(
+      Object.keys(barangayCashData)
+        .map((barangay) => ({
+          barangay: barangay,
+          amount: barangayCashData[barangay],
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10) // Top 10
+    );
+
+    // Guarantee Letters by Barangay
+    const barangayGuaranteeData = allRequests.reduce((acc, request) => {
+      if (request.approval_type === "guarantee_letter") {
+        const barangayName =
+          request.barangay || `${request.municipality} Center`;
+        acc[barangayName] = (acc[barangayName] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    setGuaranteeLetterByBarangayData(
+      Object.keys(barangayGuaranteeData)
+        .map((barangay) => ({
+          barangay: barangay,
+          count: barangayGuaranteeData[barangay],
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10) // Top 10
+    );
+
     // Requests by Type
     const typeCounts = allRequests.reduce((acc, request) => {
-      const typeName = assistanceTypeMap[request.type] || request.type; // Use full name or original if not mapped
+      const typeName = assistanceTypeMap[request.type] || request.type;
       acc[typeName] = (acc[typeName] || 0) + 1;
       return acc;
     }, {});
+
     setRequestsByTypeData(
       Object.keys(typeCounts).map((type, index) => ({
         name: type,
@@ -371,35 +514,27 @@ const AdminDashboard = ({ isDarkMode }) => {
       }))
     );
 
-    // Requests by Status (remains the same)
-    const statusCounts = allRequests.reduce((acc, request) => {
-      acc[request.status] = (acc[request.status] || 0) + 1;
+    // Monthly Trends
+    const monthlyData = allRequests.reduce((acc, request) => {
+      const month = moment(request.created_at).format("YYYY-MM");
+      if (!acc[month]) {
+        acc[month] = { month, cashAssistance: 0, guaranteeLetters: 0 };
+      }
+
+      if (request.approval_type === "cash_payment" && request.cash_amount) {
+        acc[month].cashAssistance += parseFloat(request.cash_amount);
+      } else if (request.approval_type === "guarantee_letter") {
+        acc[month].guaranteeLetters += 1;
+      }
+
       return acc;
     }, {});
-    setRequestsByStatusData(
-      Object.keys(statusCounts).map((status, index) => ({
-        name: status.charAt(0).toUpperCase() + status.slice(1),
-        count: statusCounts[status],
-        fill: CHART_COLORS.cool[index % CHART_COLORS.cool.length],
-      }))
+
+    setMonthlyTrendsData(
+      Object.values(monthlyData)
+        .sort((a, b) => a.month.localeCompare(b.month))
+        .slice(-12) // Last 12 months
     );
-
-    // Requests Over Time (Monthly) (remains the same)
-    const monthlyCounts = allRequests.reduce((acc, request) => {
-      const monthYear = moment(request.created_at).format("MMM YYYY");
-      acc[monthYear] = (acc[monthYear] || 0) + 1;
-      return acc;
-    }, {});
-
-    const last12MonthsData = [];
-    for (let i = 11; i >= 0; i--) {
-      const month = moment().subtract(i, "months").format("MMM YYYY");
-      last12MonthsData.push({
-        month: month,
-        count: monthlyCounts[month] || 0,
-      });
-    }
-    setRequestsOverTimeData(last12MonthsData);
   }, []);
 
   // Fetches all requests with associated resident names from the backend
@@ -407,7 +542,7 @@ const AdminDashboard = ({ isDarkMode }) => {
     try {
       const response = await axios.get("http://localhost:5000/api/requests");
       setRequests(response.data);
-      processRequestDataForCharts(response.data); // Process data for charts
+      processRequestDataForCharts(response.data);
     } catch (error) {
       console.error("Failed to fetch requests:", error);
       showToast("Failed to load requests.", "error");
@@ -446,7 +581,6 @@ const AdminDashboard = ({ isDarkMode }) => {
 
     // Listen for new requests via WebSocket and update state
     socket.on("newRequest", (newRequest) => {
-      // Fetch the resident's name for the new request and update the list
       axios
         .get(`http://localhost:5000/api/users/${newRequest.user_id}`)
         .then((userRes) => {
@@ -455,14 +589,14 @@ const AdminDashboard = ({ isDarkMode }) => {
               { ...newRequest, resident_name: userRes.data.first_name },
               ...prevRequests,
             ];
-            processRequestDataForCharts(updatedRequests); // Re-process charts
+            processRequestDataForCharts(updatedRequests);
             return updatedRequests;
           });
           showToast(
             `A new request from ${userRes.data.first_name} has been submitted!`,
             "info"
           );
-          fetchStats(); // Update stats as well
+          fetchStats();
         })
         .catch((err) => {
           console.error("Failed to fetch new request user info:", err);
@@ -471,14 +605,13 @@ const AdminDashboard = ({ isDarkMode }) => {
               { ...newRequest, resident_name: "Unknown Resident" },
               ...prevRequests,
             ];
-            processRequestDataForCharts(updatedRequests); // Re-process charts
+            processRequestDataForCharts(updatedRequests);
             return updatedRequests;
           });
           showToast("A new resident request has been submitted!", "info");
         });
     });
 
-    // Clean up the socket listener on unmount
     return () => {
       socket.off("newRequest");
     };
@@ -491,76 +624,16 @@ const AdminDashboard = ({ isDarkMode }) => {
     showToast,
   ]);
 
-  // Calculate completion rate data whenever stats change
-  useEffect(() => {
-    if (stats.total > 0) {
-      const completionPercentage = (stats.completed / stats.total) * 100;
-      setCompletionRateData([
-        {
-          name: "Completed",
-          value: completionPercentage,
-          fill: CHART_COLORS.cool[1],
-        },
-        {
-          name: "Remaining",
-          value: 100 - completionPercentage,
-          fill: "#e0e0e0", // Grey for remaining
-        },
-      ]);
-    } else {
-      setCompletionRateData([{ name: "No Data", value: 100, fill: "#e0e0e0" }]); // Show 100% grey if no data
-    }
-  }, [stats]);
-
-  // New function to fetch breakdown data for a specific assistance type
-  const fetchBreakdownData = useCallback(
-    async (type) => {
-      try {
-        // Assuming a new backend endpoint for this
-        const response = await axios.get(
-          `http://localhost:5000/api/requests/breakdown/${type}`
-        );
-        setBreakdownData(response.data);
-        setSelectedAssistanceType(type);
-        setIsBreakdownModalOpen(true);
-      } catch (error) {
-        console.error(`Failed to fetch breakdown data for ${type}:`, error);
-        showToast(
-          `Failed to load breakdown data for ${type}. Please ensure backend endpoint is configured and data exists.`,
-          "error"
-        );
-        setBreakdownData(null);
-      }
-    },
-    [showToast]
-  );
-
-  // Handle click on Pie Chart slice
-  const handlePieSliceClick = (data, index) => {
-    // data.name will be the full name like "Medical Assistance for Indigent Patients"
-    // We need to map it back to the backend's internal type (e.g., "MAIP")
-    const originalType = Object.keys(assistanceTypeMap).find(
-      (key) => assistanceTypeMap[key] === data.name
-    );
-    if (originalType) {
-      fetchBreakdownData(originalType);
-    } else {
-      // Fallback: if no specific mapping, use the displayed name directly
-      fetchBreakdownData(data.name);
-    }
-  };
-
-  // Updates the status of a request (completed or rejected)
+  // Updates the status of a request (approved, completed or rejected)
   const handleUpdateStatus = async (id, status) => {
     try {
       await axios.post(`http://localhost:5000/api/requests/${id}/status`, {
         status,
       });
       showToast("Request status updated successfully!", "success");
-      fetchRequests(); // Refresh the requests list and charts
-      fetchStats(); // Refresh the stats
+      fetchRequests();
+      fetchStats();
       if (selectedRequest && selectedRequest.id === id) {
-        // Update the selected request in modal if it's the one being updated
         setSelectedRequest((prev) => ({ ...prev, status: status }));
       }
     } catch (error) {
@@ -579,9 +652,9 @@ const AdminDashboard = ({ isDarkMode }) => {
   const openModal = (request) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
-    setAdminFile(null); // Clear any previously selected file
+    setAdminFile(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Clear file input
+      fileInputRef.current.value = "";
     }
   };
 
@@ -617,8 +690,8 @@ const AdminDashboard = ({ isDarkMode }) => {
       );
       showToast("File uploaded and request completed!", "success");
       closeModal();
-      fetchRequests(); // Refresh list to show updated status and file path, re-process charts
-      fetchStats(); // Refresh stats
+      fetchRequests();
+      fetchStats();
     } catch (error) {
       console.error("Failed to upload admin file:", error);
       showToast("Failed to upload file.", "error");
@@ -630,6 +703,8 @@ const AdminDashboard = ({ isDarkMode }) => {
     switch (status) {
       case "pending":
         return <Clock className="w-4 h-4 mr-2" />;
+      case "approved":
+        return <Shield className="w-4 h-4 mr-2" />;
       case "completed":
         return <CheckCircle className="w-4 h-4 mr-2" />;
       case "rejected":
@@ -639,266 +714,56 @@ const AdminDashboard = ({ isDarkMode }) => {
     }
   };
 
-  // Custom dot for line chart
-  const CustomDot = (props) => {
-    const { cx, cy, fill } = props;
-    return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={4}
-        fill={fill}
-        stroke="#fff"
-        strokeWidth={2}
-        className="drop-shadow-sm hover:r-6 transition-all duration-200"
-      />
-    );
-  };
+  // Calculate stats for cards
+  const requestStats = [
+    { label: "Total", value: stats.total || 0 },
+    { label: "Pending", value: stats.pending || 0 },
+    { label: "Approved", value: stats.approved || 0 },
+    { label: "Completed", value: stats.completed || 0 },
+    { label: "Rejected", value: stats.rejected || 0 },
+  ];
 
-  // Component for the breakdown modal
-  const AssistanceBreakdownModal = ({ type, data, onClose, isDarkMode }) => {
-    // Added isDarkMode prop
-    if (!data) return null; // Don't render if no data
+  const cashAssistanceStats = [
+    {
+      label: "Total Amount",
+      value: `₱${Number(stats.totalCashAssistance || 0).toLocaleString(
+        undefined,
+        {
+          maximumFractionDigits: 0,
+        }
+      )}`,
+    },
+    {
+      label: "Paid",
+      value: `₱${Number(stats.paidCashAssistance || 0).toLocaleString(
+        undefined,
+        {
+          maximumFractionDigits: 0,
+        }
+      )}`,
+    },
+    {
+      label: "Unpaid",
+      value: `₱${(
+        Number(stats.totalCashAssistance || 0) -
+        Number(stats.paidCashAssistance || 0)
+      ).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+    },
+  ];
 
-    // Process data for municipality chart
-    const municipalityData = Object.keys(data.municipalities || {}).map(
-      (muni) => ({
-        name: muni,
-        count: data.municipalities[muni],
-      })
-    );
-
-    // Process data for demographic charts
-    const genderData = [
-      { name: "Male", value: data.gender?.Male || 0, fill: "#3b82f6" },
-      { name: "Female", value: data.gender?.Female || 0, fill: "#ec4899" },
-      { name: "Other", value: data.gender?.Other || 0, fill: "#6b7280" },
-    ];
-
-    const specialCategoriesData = [
-      { name: "PWD", value: data.categories?.is_pwd || 0, fill: "#f59e0b" },
-      { name: "LGBT", value: data.categories?.is_lgbt || 0, fill: "#a855f7" },
-      {
-        name: "Senior",
-        value: data.categories?.is_senior || 0,
-        fill: "#10b981",
-      },
-    ];
-
-    return (
-      <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4 overflow-y-auto">
-        <div
-          className={`rounded-2xl shadow-2xl w-full max-w-4xl p-8 transform transition-all duration-300 scale-95 hover:scale-100
-                      ${
-                        isDarkMode
-                          ? "bg-gray-800 text-gray-100 border-gray-700"
-                          : "bg-white text-gray-900"
-                      }`}
-        >
-          <div className="flex justify-between items-start mb-6">
-            <h3
-              className={`text-2xl font-bold ${
-                isDarkMode ? "text-white" : "text-gray-900"
-              }`}
-            >
-              Breakdown for {assistanceTypeMap[type] || type}
-            </h3>
-            <button
-              onClick={onClose}
-              className={`text-gray-400 hover:text-gray-600 ${
-                isDarkMode ? "dark:text-gray-500 dark:hover:text-gray-300" : ""
-              }`}
-            >
-              <XCircle className="w-6 h-6" />
-            </button>
-          </div>
-
-          <div className="space-y-8">
-            {/* Breakdown by Municipality */}
-            <ChartContainer
-              title="Requests by Municipality"
-              icon={BarChart3}
-              isDarkMode={isDarkMode}
-            >
-              <ResponsiveContainer width="100%" height={250}>
-                {municipalityData.length > 0 ? (
-                  <BarChart
-                    data={municipalityData}
-                    margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
-                      opacity={0.6}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      angle={-30}
-                      textAnchor="end"
-                      height={60}
-                      tick={{
-                        fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                        fontSize: 11,
-                      }} // Conditional tick color
-                    />
-                    <YAxis
-                      tick={{
-                        fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                        fontSize: 12,
-                      }} // Conditional tick color
-                    />
-                    <Tooltip
-                      content={
-                        <CustomTooltip
-                          formatter={(value) => `${value} requests`}
-                          isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
-                        />
-                      }
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill={CHART_COLORS.cool[2]}
-                      radius={[8, 8, 0, 0]}
-                      animationDuration={800}
-                    />
-                  </BarChart>
-                ) : (
-                  <div
-                    className={`flex items-center justify-center h-full ${
-                      isDarkMode ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  >
-                    No municipality data available.
-                  </div>
-                )}
-              </ResponsiveContainer>
-            </ChartContainer>
-
-            {/* Breakdown by Demographics (Gender, PWD, LGBT, Senior) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <ChartContainer
-                title="Requests by Gender"
-                icon={Users}
-                isDarkMode={isDarkMode}
-              >
-                <ResponsiveContainer width="100%" height={250}>
-                  {genderData.some((d) => d.value > 0) ? ( // Check if any gender has data
-                    <PieChart>
-                      <Pie
-                        data={genderData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        labelLine={false}
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
-                        animationDuration={800}
-                      >
-                        {genderData.map((entry, index) => (
-                          <Cell
-                            key={`cell-gender-${index}`}
-                            fill={entry.fill}
-                            stroke="#fff"
-                            strokeWidth={2}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={
-                          <CustomTooltip
-                            formatter={(value) => `${value} requests`}
-                            isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
-                          />
-                        }
-                      />
-                      <Legend
-                        content={<CustomLegend isDarkMode={isDarkMode} />}
-                      />{" "}
-                      {/* Pass isDarkMode to legend */}
-                    </PieChart>
-                  ) : (
-                    <div
-                      className={`flex items-center justify-center h-full ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      No gender data available.
-                    </div>
-                  )}
-                </ResponsiveContainer>
-              </ChartContainer>
-
-              <ChartContainer
-                title="Requests by Special Categories"
-                icon={List}
-                isDarkMode={isDarkMode} // Pass isDarkMode prop
-              >
-                <ResponsiveContainer width="100%" height={250}>
-                  {specialCategoriesData.some((d) => d.value > 0) ? ( // Check if any category has data
-                    <BarChart
-                      data={specialCategoriesData}
-                      layout="vertical"
-                      margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
-                        opacity={0.6}
-                      />
-                      <XAxis
-                        type="number"
-                        tick={{
-                          fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                          fontSize: 12,
-                        }} // Conditional tick color
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{
-                          fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                          fontSize: 12,
-                        }} // Conditional tick color
-                      />
-                      <Tooltip
-                        content={
-                          <CustomTooltip
-                            formatter={(value) => `${value} requests`}
-                            isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
-                          />
-                        }
-                      />
-                      <Bar dataKey="value" animationDuration={800}>
-                        {specialCategoriesData.map((entry, index) => (
-                          <Cell
-                            key={`cell-category-${index}`}
-                            fill={entry.fill}
-                            radius={[0, 8, 8, 0]}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  ) : (
-                    <div
-                      className={`flex items-center justify-center h-full ${
-                        isDarkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      No special category data available.
-                    </div>
-                  )}
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const guaranteeLetterStats = [
+    { label: "Total Letters", value: stats.totalGuaranteeLetters || 0 },
+    { label: "Paid", value: stats.paidGuaranteeLetters || 0 },
+    {
+      label: "Unpaid",
+      value:
+        (stats.totalGuaranteeLetters || 0) - (stats.paidGuaranteeLetters || 0),
+    },
+    {
+      label: "Total Amount",
+      value: `₱${((stats.guaranteeLetterAmount || 0) / 1000).toFixed(0)}K`,
+    },
+  ];
 
   return (
     <div
@@ -909,7 +774,7 @@ const AdminDashboard = ({ isDarkMode }) => {
                         : "from-gray-50 via-gray-100 to-blue-50"
                     }`}
     >
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -923,19 +788,6 @@ const AdminDashboard = ({ isDarkMode }) => {
         .animate-fadeIn {
           animation: fadeIn 0.6s ease-out;
         }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slideUp {
-          animation: slideUp 0.8s ease-out;
-        }
       `}</style>
 
       {/* Toast Notification */}
@@ -945,7 +797,7 @@ const AdminDashboard = ({ isDarkMode }) => {
           type={toast.type}
           onClose={hideToast}
           isVisible={toast.isVisible}
-          isDarkMode={isDarkMode} // Pass isDarkMode to Toast
+          isDarkMode={isDarkMode}
         />
       )}
 
@@ -987,10 +839,9 @@ const AdminDashboard = ({ isDarkMode }) => {
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}
                   >
-                    Resident:
+                    Patient Name:
                   </span>{" "}
-                  {selectedRequest.resident_name ||
-                    `ID: ${selectedRequest.user_id}`}
+                  {selectedRequest.patient_name}
                 </p>
                 <p>
                   <span
@@ -1013,10 +864,6 @@ const AdminDashboard = ({ isDarkMode }) => {
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
                       statusClasses[selectedRequest.status]
-                    } ${
-                      isDarkMode
-                        ? "dark:text-yellow-200 dark:bg-yellow-900 dark:border-yellow-700"
-                        : ""
                     }`}
                   >
                     {getStatusIcon(selectedRequest.status)}
@@ -1029,69 +876,127 @@ const AdminDashboard = ({ isDarkMode }) => {
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}
                   >
+                    Municipality:
+                  </span>{" "}
+                  {selectedRequest.municipality}
+                </p>
+                {selectedRequest.cash_amount && (
+                  <p>
+                    <span
+                      className={`font-semibold ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Cash Amount:
+                    </span>{" "}
+                    ₱{parseFloat(selectedRequest.cash_amount).toLocaleString()}
+                  </p>
+                )}
+                <p>
+                  <span
+                    className={`font-semibold ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     Submitted:
                   </span>{" "}
                   {moment(selectedRequest.created_at).format("LLL")}
                 </p>
               </div>
-              <div>
-                <p
-                  className={`font-semibold mb-2 ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Details:
-                </p>
-                <div
-                  className={`p-4 rounded-lg ${
-                    isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                  }`}
-                >
-                  <p
-                    className={`${
-                      isDarkMode ? "text-gray-200" : "text-gray-800"
-                    }`}
-                  >
-                    {selectedRequest.details}
-                  </p>
-                </div>
-              </div>
-              {selectedRequest.file_path && (
+
+              {selectedRequest.details && (
                 <div>
                   <p
                     className={`font-semibold mb-2 ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}
                   >
-                    Resident's Supporting Document:
+                    Details:
                   </p>
-                  <a
-                    href={`http://localhost:5000/uploads/${selectedRequest.file_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center p-3 border rounded-lg text-teal-600 hover:bg-teal-50 transition-colors
-                               ${
-                                 isDarkMode
-                                   ? "border-gray-600 text-teal-400 hover:bg-gray-700"
-                                   : "border-gray-300"
-                               }`}
+                  <div
+                    className={`p-4 rounded-lg ${
+                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                    }`}
                   >
-                    <FolderOpen className="w-5 h-5 mr-3" />
-                    View Resident Document
-                  </a>
+                    <p
+                      className={`${
+                        isDarkMode ? "text-gray-200" : "text-gray-800"
+                      }`}
+                    >
+                      {selectedRequest.details}
+                    </p>
+                  </div>
                 </div>
               )}
-              {selectedRequest.admin_file_path && (
+
+              {/* Display uploaded documents */}
+              <div className="space-y-3">
+                {[
+                  {
+                    path: selectedRequest.medical_abstract_path,
+                    label: "Medical Abstract",
+                  },
+                  {
+                    path: selectedRequest.medical_request_path,
+                    label: "Medical Request",
+                  },
+                  {
+                    path: selectedRequest.hospital_bill_path,
+                    label: "Hospital Bill",
+                  },
+                  {
+                    path: selectedRequest.social_case_study_path,
+                    label: "Social Case Study",
+                  },
+                  {
+                    path: selectedRequest.patient_id_path,
+                    label: "Patient ID",
+                  },
+                  {
+                    path: selectedRequest.representative_id_path,
+                    label: "Representative ID",
+                  },
+                ].map(
+                  (doc, index) =>
+                    doc.path && (
+                      <div key={index}>
+                        <p
+                          className={`font-semibold mb-2 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          {doc.label}:
+                        </p>
+                        <a
+                          href={`http://localhost:5000/uploads/${doc.path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center p-3 border rounded-lg text-teal-600 hover:bg-teal-50 transition-colors
+                                   ${
+                                     isDarkMode
+                                       ? "border-gray-600 text-teal-400 hover:bg-gray-700"
+                                       : "border-gray-300"
+                                   }`}
+                        >
+                          <FolderOpen className="w-5 h-5 mr-3" />
+                          View {doc.label}
+                        </a>
+                      </div>
+                    )
+                )}
+              </div>
+
+              {selectedRequest.approval_file && (
                 <div>
                   <p
                     className={`font-semibold mb-2 ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}
                   >
-                    Admin's Uploaded Document:
+                    Approval Document:
                   </p>
                   <a
-                    href={`http://localhost:5000/uploads/${selectedRequest.admin_file_path}`}
+                    href={`http://localhost:5000/uploads/${selectedRequest.approval_file}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`flex items-center p-3 border rounded-lg text-blue-600 hover:bg-blue-50 transition-colors
@@ -1102,43 +1007,64 @@ const AdminDashboard = ({ isDarkMode }) => {
                                }`}
                   >
                     <FolderOpen className="w-5 h-5 mr-3" />
-                    View Admin Document
+                    View Approval Document
                   </a>
                 </div>
               )}
 
               {selectedRequest.status === "pending" && (
                 <div
-                  className={`mt-6 pt-4 border-t ${
+                  className={`mt-6 pt-4 border-t space-y-4 ${
                     isDarkMode ? "border-gray-700" : "border-gray-200"
                   }`}
                 >
-                  <p
-                    className={`font-semibold mb-2 ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Upload Admin Response File (Optional, marks as Completed):
-                  </p>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={(e) => setAdminFile(e.target.files[0])}
-                      className={`flex-1 px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100
-                                 ${
-                                   isDarkMode
-                                     ? "bg-gray-700 border-gray-600 text-gray-200 focus:ring-teal-700 focus:border-teal-700 file:bg-teal-800 file:text-teal-100 hover:file:bg-teal-700"
-                                     : "border-gray-300"
-                                 }`}
-                    />
+                  <div className="flex gap-2">
                     <button
-                      onClick={handleAdminFileUpload}
-                      className="px-6 py-2 rounded-lg font-semibold bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 transition-all shadow-md flex items-center space-x-2"
+                      onClick={() =>
+                        handleUpdateStatus(selectedRequest.id, "approved")
+                      }
+                      className="px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all"
                     >
-                      <Upload className="w-5 h-5" />
-                      <span>Upload & Complete</span>
+                      Approve
                     </button>
+                    <button
+                      onClick={() =>
+                        handleUpdateStatus(selectedRequest.id, "rejected")
+                      }
+                      className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 transition-all"
+                    >
+                      Reject
+                    </button>
+                  </div>
+
+                  <div>
+                    <p
+                      className={`font-semibold mb-2 ${
+                        isDarkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Upload Approval File (Optional, marks as Completed):
+                    </p>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={(e) => setAdminFile(e.target.files[0])}
+                        className={`flex-1 px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100
+                                     ${
+                                       isDarkMode
+                                         ? "bg-gray-700 border-gray-600 text-gray-200 focus:ring-teal-700 focus:border-teal-700 file:bg-teal-800 file:text-teal-100 hover:file:bg-teal-700"
+                                         : "border-gray-300"
+                                     }`}
+                      />
+                      <button
+                        onClick={handleAdminFileUpload}
+                        className="px-6 py-2 rounded-lg font-semibold bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 transition-all shadow-md flex items-center space-x-2"
+                      >
+                        <Upload className="w-5 h-5" />
+                        <span>Upload & Complete</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1147,108 +1073,260 @@ const AdminDashboard = ({ isDarkMode }) => {
         </div>
       )}
 
-      {isBreakdownModalOpen && breakdownData && (
-        <AssistanceBreakdownModal
-          type={selectedAssistanceType}
-          data={breakdownData}
-          onClose={() => setIsBreakdownModalOpen(false)}
-          isDarkMode={isDarkMode} // Pass isDarkMode to breakdown modal
-        />
-      )}
-
       <div className={`p-6 space-y-8 ${animationClass}`}>
-        {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            {
-              title: "Total Requests",
-              value: stats.total || 0,
-              icon: FileText,
-              color: "bg-blue-500",
-              darkColor: "dark:bg-blue-700",
-            },
-            {
-              title: "Pending Requests",
-              value: stats.pending || 0,
-              icon: Clock,
-              color: "bg-yellow-500",
-              darkColor: "dark:bg-yellow-700",
-            },
-            {
-              title: "Completed Requests",
-              value: stats.completed || 0,
-              icon: CheckCircle,
-              color: "bg-green-500",
-              darkColor: "dark:bg-green-700",
-            },
-            {
-              title: "Rejected Requests",
-              value: stats.rejected || 0,
-              icon: XCircle,
-              color: "bg-red-500",
-              darkColor: "dark:bg-red-700",
-            },
-          ].map((stat, index) => (
-            <div
-              key={index}
-              className={`rounded-2xl shadow-lg p-6 flex items-center space-x-4 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
-                          ${
-                            isDarkMode
-                              ? "bg-gray-800 border-gray-700 text-gray-100"
-                              : "bg-white border-gray-100"
-                          }`}
-            >
-              <div
-                className={`p-3 rounded-full ${stat.color} ${stat.darkColor} bg-opacity-80 shadow-md`}
-              >
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p
-                  className={`text-sm font-medium ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  {stat.title}
-                </p>
-                <p
-                  className={`text-3xl font-bold ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {stat.value}
-                </p>
-              </div>
-            </div>
-          ))}
+        {/* Enhanced Stats Cards - New Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Total Requests Card */}
+          <StatsCard
+            title="Total Requests"
+            stats={requestStats}
+            icon={FileText}
+            color="bg-gradient-to-br from-blue-500 to-blue-600"
+            isDarkMode={isDarkMode}
+          />
+
+          {/* Cash Assistance Card */}
+          <StatsCard
+            title="Cash Assistance"
+            stats={cashAssistanceStats}
+            icon={PesoSign}
+            color="bg-gradient-to-br from-green-500 to-green-600"
+            isDarkMode={isDarkMode}
+          />
+
+          {/* Guarantee Letters Card */}
+          <StatsCard
+            title="Guarantee Letters"
+            stats={guaranteeLetterStats}
+            icon={CreditCard}
+            color="bg-gradient-to-br from-purple-500 to-purple-600"
+            isDarkMode={isDarkMode}
+          />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Cash Assistance by Municipality (Line Chart) */}
+          <ChartContainer
+            title="Cash Assistance by Municipality"
+            icon={LineChartIcon}
+            className="lg:col-span-2"
+            isDarkMode={isDarkMode}
+          >
+            <ResponsiveContainer width="100%" height={350}>
+              {cashAssistanceByMunicipalityData.length > 0 ? (
+                <LineChart
+                  data={cashAssistanceByMunicipalityData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"}
+                    opacity={0.6}
+                  />
+                  <XAxis
+                    dataKey="municipality"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 10,
+                    }}
+                  />
+                  <YAxis
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) =>
+                          `₱${parseFloat(value).toLocaleString()}`
+                        }
+                        isDarkMode={isDarkMode}
+                      />
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    stroke={CHART_COLORS.gradient[2]}
+                    strokeWidth={3}
+                    dot={{
+                      r: 6,
+                      fill: CHART_COLORS.gradient[2],
+                      strokeWidth: 2,
+                      stroke: "#fff",
+                    }}
+                    activeDot={{ r: 8, fill: CHART_COLORS.gradient[0] }}
+                    animationDuration={800}
+                  />
+                </LineChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No cash assistance data by municipality available.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Cash Assistance by Barangay (Bar Chart) */}
+          <ChartContainer
+            title="Top 10 Cash Assistance by Barangay"
+            icon={BarChart3}
+            className="col-span-1"
+            isDarkMode={isDarkMode}
+          >
+            <ResponsiveContainer width="100%" height={350}>
+              {cashAssistanceByBarangayData.length > 0 ? (
+                <BarChart
+                  data={cashAssistanceByBarangayData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  layout="vertical"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"}
+                    opacity={0.6}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="barangay"
+                    width={100}
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 10,
+                    }}
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) =>
+                          `₱${parseFloat(value).toLocaleString()}`
+                        }
+                        isDarkMode={isDarkMode}
+                      />
+                    }
+                  />
+                  <Bar
+                    dataKey="amount"
+                    fill={CHART_COLORS.cool[1]}
+                    radius={[0, 8, 8, 0]}
+                    animationDuration={800}
+                  />
+                </BarChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No cash assistance data by barangay available.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
+          {/* Guarantee Letters by Barangay (Bar Chart) */}
+          <ChartContainer
+            title="Top 10 Guarantee Letters by Barangay"
+            icon={FileText}
+            className="col-span-1"
+            isDarkMode={isDarkMode}
+          >
+            <ResponsiveContainer width="100%" height={350}>
+              {guaranteeLetterByBarangayData.length > 0 ? (
+                <BarChart
+                  data={guaranteeLetterByBarangayData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  layout="vertical"
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"}
+                    opacity={0.6}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 12,
+                    }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="barangay"
+                    width={100}
+                    tick={{
+                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
+                      fontSize: 10,
+                    }}
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip
+                        formatter={(value) => `${value} letters`}
+                        isDarkMode={isDarkMode}
+                      />
+                    }
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill={CHART_COLORS.warm[1]}
+                    radius={[0, 8, 8, 0]}
+                    animationDuration={800}
+                  />
+                </BarChart>
+              ) : (
+                <div
+                  className={`flex items-center justify-center h-full ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  No guarantee letter data by barangay available.
+                </div>
+              )}
+            </ResponsiveContainer>
+          </ChartContainer>
+
           {/* Requests by Type (Pie Chart) */}
           <ChartContainer
             title="Requests by Type"
             icon={PieChartIcon}
             className="col-span-1"
-            isDarkMode={isDarkMode} // Pass isDarkMode
+            isDarkMode={isDarkMode}
           >
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={350}>
               {requestsByTypeData.length > 0 ? (
                 <PieChart>
                   <Pie
                     data={requestsByTypeData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
+                    outerRadius={120}
                     fill="#8884d8"
                     dataKey="value"
                     labelLine={false}
                     label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
+                      percent > 5
+                        ? `${name} ${(percent * 100).toFixed(0)}%`
+                        : ""
                     }
                     animationDuration={800}
-                    onClick={handlePieSliceClick} // Add click handler
-                    cursor="pointer" // Indicate it's clickable
                   >
                     {requestsByTypeData.map((entry, index) => (
                       <Cell
@@ -1264,12 +1342,11 @@ const AdminDashboard = ({ isDarkMode }) => {
                     content={
                       <CustomTooltip
                         formatter={(value) => `${value} requests`}
-                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
+                        isDarkMode={isDarkMode}
                       />
                     }
                   />
-                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
-                  {/* Pass isDarkMode to legend */}
+                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />
                 </PieChart>
               ) : (
                 <div
@@ -1283,187 +1360,77 @@ const AdminDashboard = ({ isDarkMode }) => {
             </ResponsiveContainer>
           </ChartContainer>
 
-          {/* Requests by Status (Bar Chart) */}
+          {/* Monthly Trends (Area Chart) */}
           <ChartContainer
-            title="Requests by Status"
-            icon={BarChart3}
+            title="Monthly Trends - Last 12 Months"
+            icon={TrendingUp}
             className="col-span-1"
-            isDarkMode={isDarkMode} // Pass isDarkMode
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              {requestsByStatusData.length > 0 ? (
-                <BarChart
-                  data={requestsByStatusData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
-                    opacity={0.6}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    tick={{
-                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                      fontSize: 12,
-                    }} // Conditional tick color
-                  />
-                  <YAxis
-                    tick={{
-                      fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                      fontSize: 12,
-                    }} // Conditional tick color
-                  />
-                  <Tooltip
-                    content={
-                      <CustomTooltip
-                        formatter={(value) => `${value} requests`}
-                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
-                      />
-                    }
-                  />
-                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
-                  {/* Pass isDarkMode to legend */}
-                  <Bar
-                    dataKey="count"
-                    barSize={40}
-                    radius={[8, 8, 0, 0]}
-                    animationDuration={800}
-                  >
-                    {requestsByStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              ) : (
-                <div
-                  className={`flex items-center justify-center h-full ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  No data for Requests by Status.
-                </div>
-              )}
-            </ResponsiveContainer>
-          </ChartContainer>
-
-          {/* Requests Over Time (Line Chart) */}
-          <ChartContainer
-            title="Requests Over Time (Last 12 Months)"
-            icon={LineChartIcon}
-            className="lg:col-span-2"
-            isDarkMode={isDarkMode} // Pass isDarkMode
+            isDarkMode={isDarkMode}
           >
             <ResponsiveContainer width="100%" height={350}>
-              {requestsOverTimeData.length > 0 ? (
-                <LineChart
-                  data={requestsOverTimeData}
+              {monthlyTrendsData.length > 0 ? (
+                <AreaChart
+                  data={monthlyTrendsData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"} // Conditional grid color
+                    stroke={isDarkMode ? "#4b5563" : "#e5e7eb"}
                     opacity={0.6}
                   />
                   <XAxis
                     dataKey="month"
                     tick={{
                       fill: isDarkMode ? "#d1d5db" : "#6b7280",
-                      fontSize: 12,
-                    }} // Conditional tick color
+                      fontSize: 10,
+                    }}
                   />
                   <YAxis
                     tick={{
                       fill: isDarkMode ? "#d1d5db" : "#6b7280",
                       fontSize: 12,
-                    }} // Conditional tick color
+                    }}
                   />
                   <Tooltip
                     content={
                       <CustomTooltip
-                        formatter={(value) => `${value} requests`}
-                        isDarkMode={isDarkMode} // Pass isDarkMode to tooltip
+                        formatter={(value, name) => {
+                          if (name === "cashAssistance") {
+                            return `₱${parseFloat(value).toLocaleString()}`;
+                          }
+                          return `${value} letters`;
+                        }}
+                        isDarkMode={isDarkMode}
                       />
                     }
                   />
-                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />{" "}
-                  {/* Pass isDarkMode to legend */}
-                  <Line
+                  <Legend content={<CustomLegend isDarkMode={isDarkMode} />} />
+                  <Area
                     type="monotone"
-                    dataKey="count"
-                    stroke={CHART_COLORS.gradient[2]}
-                    strokeWidth={3}
-                    dot={<CustomDot fill={CHART_COLORS.gradient[2]} />}
-                    activeDot={{ r: 8, fill: CHART_COLORS.gradient[0] }}
-                    animationDuration={800}
+                    dataKey="cashAssistance"
+                    stackId="1"
+                    stroke={CHART_COLORS.cool[1]}
+                    fill={CHART_COLORS.cool[1]}
+                    fillOpacity={0.6}
+                    name="Cash Assistance (₱)"
                   />
-                </LineChart>
+                  <Area
+                    type="monotone"
+                    dataKey="guaranteeLetters"
+                    stackId="2"
+                    stroke={CHART_COLORS.warm[1]}
+                    fill={CHART_COLORS.warm[1]}
+                    fillOpacity={0.6}
+                    name="Guarantee Letters"
+                  />
+                </AreaChart>
               ) : (
                 <div
                   className={`flex items-center justify-center h-full ${
                     isDarkMode ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
-                  No data for Requests Over Time.
-                </div>
-              )}
-            </ResponsiveContainer>
-          </ChartContainer>
-
-          {/* Overall Completion Rate (Radial Bar Chart) */}
-          <ChartContainer
-            title="Overall Completion Rate"
-            icon={TrendingUp}
-            className="col-span-1"
-            isDarkMode={isDarkMode} // Pass isDarkMode
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              {completionRateData.length > 0 &&
-              completionRateData[0].value !== 100 ? ( // Only show chart if there's actual completion data
-                <RadialBarChart
-                  cx="50%"
-                  cy="50%"
-                  innerRadius="40%"
-                  outerRadius="80%"
-                  barSize={20}
-                  data={completionRateData}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <RadialBar
-                    minAngle={15}
-                    label={{
-                      position: "insideStart",
-                      fill: "#fff",
-                      formatter: (value) => `${value.toFixed(0)}%`,
-                    }}
-                    background
-                    clockWise
-                    dataKey="value"
-                  />
-                  <Tooltip
-                    content={
-                      <CustomTooltip
-                        formatter={(value) => `${value.toFixed(1)}%`}
-                        isDarkMode={isDarkMode}
-                      /> // Pass isDarkMode to tooltip
-                    }
-                  />
-                  <Legend
-                    iconSize={10}
-                    layout="vertical"
-                    verticalAlign="middle"
-                    align="right"
-                    content={<CustomLegend isDarkMode={isDarkMode} />} // Pass isDarkMode to legend
-                  />
-                </RadialBarChart>
-              ) : (
-                <div
-                  className={`flex items-center justify-center h-full ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  No completion data available or 0 total requests.
+                  No monthly trends data available.
                 </div>
               )}
             </ResponsiveContainer>
@@ -1474,7 +1441,7 @@ const AdminDashboard = ({ isDarkMode }) => {
             title="Recent Activities"
             icon={Activity}
             className="lg:col-span-2"
-            isDarkMode={isDarkMode} // Pass isDarkMode
+            isDarkMode={isDarkMode}
           >
             <div className="overflow-x-auto">
               {requests.length > 0 ? (
@@ -1493,7 +1460,7 @@ const AdminDashboard = ({ isDarkMode }) => {
                           isDarkMode ? "text-gray-300" : "text-gray-500"
                         }`}
                       >
-                        Resident
+                        Patient Name
                       </th>
                       <th
                         scope="col"
@@ -1510,6 +1477,22 @@ const AdminDashboard = ({ isDarkMode }) => {
                         }`}
                       >
                         Status
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Municipality
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                          isDarkMode ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        Amount
                       </th>
                       <th
                         scope="col"
@@ -1536,7 +1519,7 @@ const AdminDashboard = ({ isDarkMode }) => {
                         : "bg-white divide-gray-200"
                     }`}
                   >
-                    {requests.slice(0, 5).map((request) => (
+                    {requests.slice(0, 10).map((request) => (
                       <tr
                         key={request.id}
                         className={`${
@@ -1550,7 +1533,7 @@ const AdminDashboard = ({ isDarkMode }) => {
                             isDarkMode ? "text-white" : "text-gray-900"
                           }`}
                         >
-                          {request.resident_name || "N/A"}
+                          {request.patient_name || "N/A"}
                         </td>
                         <td
                           className={`px-6 py-4 whitespace-nowrap text-sm ${
@@ -1563,10 +1546,6 @@ const AdminDashboard = ({ isDarkMode }) => {
                           <span
                             className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
                               statusClasses[request.status]
-                            } ${
-                              isDarkMode
-                                ? "dark:text-teal-200 dark:bg-teal-900 dark:border-teal-700"
-                                : ""
                             }`}
                           >
                             {getStatusIcon(request.status)}
@@ -1578,12 +1557,35 @@ const AdminDashboard = ({ isDarkMode }) => {
                             isDarkMode ? "text-gray-300" : "text-gray-700"
                           }`}
                         >
+                          {request.municipality}
+                        </td>
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
+                          {request.cash_amount ? (
+                            <span className="text-green-600 dark:text-green-400">
+                              ₱
+                              {parseFloat(request.cash_amount).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-blue-600 dark:text-blue-400">
+                              Letter
+                            </span>
+                          )}
+                        </td>
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}
+                        >
                           {moment(request.created_at).format("MMM D, YYYY")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             onClick={() => openModal(request)}
-                            className={`text-teal-600 hover:text-teal-900 ${
+                            className={`text-teal-600 hover:text-teal-900 transition-colors ${
                               isDarkMode
                                 ? "dark:text-teal-400 dark:hover:text-teal-200"
                                 : ""

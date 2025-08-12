@@ -262,10 +262,18 @@ exports.approveRequest = (req, res) => {
 exports.getRequestStats = (req, res) => {
   const statsQuery = `
     SELECT
+      -- existing counts
       (SELECT COUNT(*) FROM requests) AS total,
       (SELECT COUNT(*) FROM requests WHERE status = 'pending') AS pending,
       (SELECT COUNT(*) FROM requests WHERE status = 'completed') AS completed,
-      (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS thisMonth
+      (SELECT COUNT(*) FROM requests WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS thisMonth,
+
+      -- cash assistance totals
+      COALESCE(SUM(cash_amount), 0) AS totalCashAssistance,
+      COALESCE(SUM(CASE WHEN status = 'completed' THEN cash_amount ELSE 0 END), 0) AS paidCashAssistance,
+      COALESCE(SUM(cash_amount), 0) - COALESCE(SUM(CASE WHEN status = 'completed' THEN cash_amount ELSE 0 END), 0) AS unpaidCashAssistance
+    FROM requests
+    WHERE approval_type = 'cash_payment';
   `;
 
   db.query(statsQuery, (err, results) => {
@@ -276,3 +284,4 @@ exports.getRequestStats = (req, res) => {
     res.json(results[0]);
   });
 };
+

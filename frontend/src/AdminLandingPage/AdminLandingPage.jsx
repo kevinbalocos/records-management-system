@@ -341,7 +341,7 @@ export default function AdminPage() {
       items: [
         {
           id: "manage-request-types",
-          label: "Manage Request Types",
+          label: "Request Types",
           icon: ListChecks,
         },
       ],
@@ -351,7 +351,7 @@ export default function AdminPage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userInfo");
-    navigate("/login");
+    navigate("/");
   };
 
   return (

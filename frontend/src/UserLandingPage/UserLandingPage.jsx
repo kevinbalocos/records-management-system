@@ -15,6 +15,7 @@ import {
   ClipboardList,
   X,
   Clock,
+  Activity, // Add this import for the loading icon
 } from "lucide-react";
 
 const API_BASE = "http://localhost:5000";
@@ -28,6 +29,38 @@ function getInitials(name) {
     .toUpperCase();
 }
 
+// Loading Splash Component
+const LoadingSplash = ({ isVisible, isDarkMode = false }) => {
+  return (
+    <div
+      className={`fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-700
+                  ${isVisible ? "opacity-100" : "opacity-0 pointer-events-none"}
+                  ${isDarkMode ? "bg-gray-950" : "bg-white"}`}
+    >
+      <div className="text-center">
+        <Activity
+          className={`w-16 h-16 mx-auto animate-spin mb-4
+                      ${isDarkMode ? "text-teal-400" : "text-teal-600"}`}
+        />
+        <h2
+          className={`text-3xl font-bold ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Loading User Panel
+        </h2>
+        <p
+          className={`text-lg ${
+            isDarkMode ? "text-gray-400" : "text-gray-600"
+          }`}
+        >
+          Getting things ready for you...
+        </p>
+      </div>
+    </div>
+  );
+};
+
 export default function UserPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState(() => {
@@ -35,18 +68,54 @@ export default function UserPage() {
     return savedItem || "dashboard";
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Add loading states
+  const [showSplash, setShowSplash] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false); // You can make this dynamic based on user preference
+  const [isLoading, setIsLoading] = useState(true);
+  
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({});
   const userId = localStorage.getItem("userId");
 
+  // Handle initial loading and splash screen
   useEffect(() => {
-    if (!userId) return;
+    // Minimum splash display time
+    const minSplashTime = 1500; // 1.5 seconds minimum
+    const startTime = Date.now();
+
+    const hideSplash = () => {
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minSplashTime - elapsedTime);
+      
+      setTimeout(() => {
+        setShowSplash(false);
+      }, remainingTime);
+    };
+
+    // If no userId, hide splash after minimum time
+    if (!userId) {
+      hideSplash();
+      setIsLoading(false);
+      return;
+    }
+
+    // Fetch user data
     fetch(`${API_BASE}/api/users/${userId}`)
       .then((res) => {
         if (!res.ok) throw new Error("User not found");
         return res.json();
       })
-      .then((data) => setUserInfo(data));
+      .then((data) => {
+        setUserInfo(data);
+        setIsLoading(false);
+        hideSplash();
+      })
+      .catch((error) => {
+        console.error("Error loading user:", error);
+        setIsLoading(false);
+        hideSplash();
+      });
   }, [userId]);
 
   useEffect(() => {
@@ -56,6 +125,7 @@ export default function UserPage() {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "resident-request", label: "Resident Request", icon: CheckCircle },
+    // Uncomment these as needed
     // {
     //   id: "indigency-request",
     //   label: "Indigency Request",
@@ -68,8 +138,14 @@ export default function UserPage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userInfo");
-    navigate("/login");
+    localStorage.removeItem("UserActiveMenuItem");
+    navigate("/");
   };
+
+  // Show loading splash
+  if (showSplash) {
+    return <LoadingSplash isVisible={showSplash} isDarkMode={isDarkMode} />;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden lg:flex-row">
@@ -103,6 +179,7 @@ export default function UserPage() {
             )}
           </button>
         </div>
+
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
@@ -132,6 +209,7 @@ export default function UserPage() {
             );
           })}
         </nav>
+
         {/* User Profile */}
         <div className="p-5 border-t border-gray-100 flex-shrink-0">
           <div
@@ -148,7 +226,7 @@ export default function UserPage() {
                   {userInfo.first_name
                     ? userInfo.first_name.charAt(0).toUpperCase() +
                       userInfo.first_name.slice(1)
-                    : "Loading..."}
+                    : isLoading ? "Loading..." : "User"}
                 </p>
                 <p className="text-sm text-gray-500 truncate">User Portal</p>
               </div>
@@ -170,7 +248,7 @@ export default function UserPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden">
-        {/* Top Bar for Mobile (with menu button) */}
+        {/* Top Bar for Mobile */}
         <div className="bg-white p-4 flex items-center justify-between border-b border-gray-100 lg:hidden">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 bg-teal-500 rounded-lg flex items-center justify-center shadow-md">
@@ -192,8 +270,6 @@ export default function UserPage() {
               className="absolute top-0 right-0 w-64 h-full bg-white shadow-lg p-4 flex flex-col animate-slide-in-right"
               onClick={(e) => e.stopPropagation()}
             >
-              {" "}
-              {/* Prevent clicks from closing overlay */}
               <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -212,7 +288,7 @@ export default function UserPage() {
                       key={item.id}
                       onClick={() => {
                         setActiveItem(item.id);
-                        setIsMobileMenuOpen(false); // Close menu on item click
+                        setIsMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center space-x-4 px-4 py-3 rounded-xl transition-all duration-300 group
                         ${
@@ -240,7 +316,10 @@ export default function UserPage() {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <p className="text-lg font-semibold text-gray-800 truncate">
-                      John Doe
+                      {userInfo.first_name
+                        ? userInfo.first_name.charAt(0).toUpperCase() +
+                          userInfo.first_name.slice(1)
+                        : isLoading ? "Loading..." : "User"}
                     </p>
                     <p className="text-sm text-gray-500 truncate">
                       User Portal
@@ -262,9 +341,11 @@ export default function UserPage() {
         )}
 
         {/* Page Content Area */}
-        <main className="flex-1   overflow-y-auto bg-teal-50">
+        <main className="flex-1 overflow-y-auto bg-teal-50">
           {activeItem === "dashboard" && (
-            <div className="bg-white rounded-xl shadow-lg  sm:p-8 text-center text-gray-700 font-semibold text-xl sm:text-2xl h-full flex items-center justify-center border border-gray-100"></div>
+            <div className="bg-white rounded-xl shadow-lg sm:p-8 text-center text-gray-700 font-semibold text-xl sm:text-2xl h-full flex items-center justify-center border border-gray-100">
+              Welcome to User Dashboard
+            </div>
           )}
           {activeItem === "resident-request" && (
             <div className="bg-white rounded-xl shadow-lg border border-gray-100">
@@ -289,7 +370,7 @@ export default function UserPage() {
         </main>
       </div>
 
-      {/* Bottom Navigation for Mobile Devices (hidden on lg and up) */}
+      {/* Bottom Navigation for Mobile Devices */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-30 flex justify-around p-2 lg:hidden">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -314,9 +395,8 @@ export default function UserPage() {
             </button>
           );
         })}
-        {/* User Profile / Logout for Mobile Bottom Nav (Optional, can be added to overlay menu) */}
         <button
-          onClick={() => setIsMobileMenuOpen(true)} // Open full menu for more options
+          onClick={() => setIsMobileMenuOpen(true)}
           className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 text-sm font-medium
                 ${
                   isMobileMenuOpen
