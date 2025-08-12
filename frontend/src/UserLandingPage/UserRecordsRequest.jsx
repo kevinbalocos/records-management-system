@@ -57,12 +57,12 @@ const SystemAlert = ({ message, type, onClose, isVisible }) => {
 
   return (
     <div
-      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out 
-         ${
-           isVisible
-             ? "translate-y-0 opacity-100"
-             : "-translate-y-full opacity-0"
-         }`}
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ease-out
+          ${
+            isVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-full opacity-0"
+          }`}
     >
       <div className={getAlertStyles()}>
         {getIcon()}
@@ -132,6 +132,97 @@ const RecordsLandingPage = () => {
   const [socialCaseStudy, setSocialCaseStudy] = useState(null);
   const [patientId, setPatientId] = useState(null);
   const [representativeId, setRepresentativeId] = useState(null);
+
+  // --- NEW STATE FOR PLACE SUGGESTIONS ---
+  const [municipalitySuggestions, setMunicipalitySuggestions] = useState([]);
+  const [streetSuggestions, setStreetSuggestions] = useState([]);
+  const [isMunicipalityLoading, setIsMunicipalityLoading] = useState(false);
+  const [isStreetLoading, setIsStreetLoading] = useState(false);
+
+  // --- CORRECTED DEBOUNCED API CALL FUNCTION ---
+  const fetchSuggestions = useCallback(
+    async (query, searchType, updater) => {
+      if (query.length < 3) {
+        updater([]);
+        return;
+      }
+
+      const setLoader =
+        searchType === "municipality"
+          ? setIsMunicipalityLoading
+          : setIsStreetLoading;
+      setLoader(true);
+
+      const url = `https://nominatim.openstreetmap.org/search?q=${query}, Laguna, Philippines&format=json&limit=5&addressdetails=1&countrycodes=ph`;
+
+      try {
+        const res = await axios.get(url);
+
+        const suggestions = res.data
+          .filter(
+            (item) =>
+              item.address.state === "Laguna" &&
+              (searchType === "municipality"
+                ? item.address.city || item.address.town || item.address.village
+                : item.address.suburb ||
+                  item.address.village ||
+                  item.address.road)
+          )
+          .map((item) => ({
+            display: item.display_name,
+            municipality:
+              item.address.city || item.address.town || item.address.village,
+            barangay:
+              item.address.suburb || item.address.village || item.address.road,
+          }));
+        updater(suggestions);
+      } catch (err) {
+        console.error(`Failed to fetch ${searchType} suggestions:`, err);
+        showAlert(`Failed to fetch ${searchType} suggestions.`, "error");
+        updater([]);
+      } finally {
+        setLoader(false);
+      }
+    },
+    [showAlert]
+  );
+
+  // --- NEW useEffect hooks for debouncing ---
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (municipality.length > 0) {
+        fetchSuggestions(
+          municipality,
+          "municipality",
+          setMunicipalitySuggestions
+        );
+      } else {
+        setMunicipalitySuggestions([]);
+      }
+    }, 500); // 500ms debounce delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [municipality, fetchSuggestions]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (street.length > 0 && municipality.length > 0) {
+        fetchSuggestions(
+          `${street}, ${municipality}`,
+          "street",
+          setStreetSuggestions
+        );
+      } else {
+        setStreetSuggestions([]);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [street, municipality, fetchSuggestions]);
 
   const fetchStats = async () => {
     try {
@@ -263,7 +354,6 @@ const RecordsLandingPage = () => {
       return;
     }
 
-    // Check if at least one document is uploaded
     const noFilesUploaded =
       !medicalAbstract &&
       !medicalRequest &&
@@ -272,7 +362,6 @@ const RecordsLandingPage = () => {
       !patientId &&
       !representativeId;
 
-    // Validate all fields + file requirement
     if (!type || !details || noFilesUploaded || requestTypes.length === 0) {
       showAlert("Please fill in all fields and upload a document.", "warning");
       setIsSubmitting(false);
@@ -290,7 +379,6 @@ const RecordsLandingPage = () => {
     formData.append("municipality", municipality);
     formData.append("hospital_admitted", hospitalAdmitted);
 
-    // Append only the files that are uploaded
     if (medicalAbstract) formData.append("medical_abstract", medicalAbstract);
     if (medicalRequest) formData.append("medical_request", medicalRequest);
     if (hospitalBill) formData.append("hospital_bill", hospitalBill);
@@ -309,7 +397,6 @@ const RecordsLandingPage = () => {
 
       showAlert("Request submitted successfully!", "success");
 
-      // Reset all fields for next request
       setType(requestTypes.length > 0 ? requestTypes[0].name : "");
       setDetails("");
       setPatientName("");
@@ -385,7 +472,6 @@ const RecordsLandingPage = () => {
         />
       )}
 
-      {/* --- Header --- */}
       <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-gray-900 ml-2">
@@ -410,43 +496,14 @@ const RecordsLandingPage = () => {
         </div>
       </header>
 
-      {/* --- Main Content Grid --- */}
       <main className="p-6 md:p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* --- Left Column: Request Form --- */}
         <div className="lg:col-span-2 space-y-6">
-          {/* --- Stats Cards --- */}
-          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={index}
-                  className="bg-white p-5 rounded-xl shadow-sm flex items-center space-x-4 border border-gray-100"
-                >
-                  <div className="p-3 bg-gray-100 rounded-full text-blue-600">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      {stat.title}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                      {stat.value}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div> */}
-
-          {/* --- Request Form Card --- */}
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Create New Request
             </h2>
 
             <div className="space-y-6">
-              {/* Request Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Request Type
@@ -474,7 +531,6 @@ const RecordsLandingPage = () => {
                 )}
               </div>
 
-              {/* Patient Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -518,34 +574,79 @@ const RecordsLandingPage = () => {
                     <option value="Female">Female</option>
                   </select>
                 </div>
-                <div>
+                {/* --- MUNICIPALITY/CITY INPUT WITH SUGGESTIONS --- */}
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Municipality
+                    Municipality/City
                   </label>
                   <input
                     type="text"
                     value={municipality}
                     onChange={(e) => setMunicipality(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                    className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  {isMunicipalityLoading && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 p-2 text-center text-sm text-gray-500">
+                      Loading...
+                    </div>
+                  )}
+                  {!isMunicipalityLoading &&
+                    municipalitySuggestions.length > 0 && (
+                      <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                        {municipalitySuggestions.map((suggestion, index) => (
+                          <li
+                            key={index}
+                            onClick={() => {
+                              setMunicipality(suggestion.municipality);
+                              setMunicipalitySuggestions([]);
+                            }}
+                            className="p-2 cursor-pointer hover:bg-blue-50 transition-colors text-sm"
+                          >
+                            {suggestion.municipality}, Laguna, Philippines
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                 </div>
               </div>
 
-              <div>
+              {/* --- STREET/BARANGAY INPUT WITH SUGGESTIONS --- */}
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Street
+                  Street/Barangay
                 </label>
                 <input
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5"
+                  className="w-full border border-gray-300 rounded-lg shadow-sm text-sm p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                {isStreetLoading && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 p-2 text-center text-sm text-gray-500">
+                    Loading...
+                  </div>
+                )}
+                {!isStreetLoading && streetSuggestions.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                    {streetSuggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        onClick={() => {
+                          setStreet(suggestion.barangay || suggestion.street);
+                          setStreetSuggestions([]);
+                        }}
+                        className="p-2 cursor-pointer hover:bg-blue-50 transition-colors text-sm"
+                      >
+                        {suggestion.barangay}, {suggestion.municipality},
+                        Laguna, Philippines
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              {/* Hospital */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Hospital Admitted
@@ -559,7 +660,6 @@ const RecordsLandingPage = () => {
                 />
               </div>
 
-              {/* Request Details */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Request Details
@@ -573,7 +673,6 @@ const RecordsLandingPage = () => {
                 />
               </div>
 
-              {/* Multiple Document Uploads */}
               {[
                 {
                   label: "Medical Abstract/Medical Certificate",
@@ -628,7 +727,6 @@ const RecordsLandingPage = () => {
                 </div>
               ))}
 
-              {/* Submit */}
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleSubmit}
@@ -656,12 +754,12 @@ const RecordsLandingPage = () => {
           </div>
         </div>
 
-        {/* --- Right Column: Recent Activity --- */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               Recent Activity
             </h3>
+                   {" "}
             <div className="space-y-4">
               {activities.length === 0 ? (
                 <p className="text-gray-500 text-sm">No recent activity yet.</p>
@@ -710,7 +808,6 @@ const RecordsLandingPage = () => {
                           {activity.status === "completed" &&
                             activity.approval_file && (
                               <div className="mt-2 flex items-center gap-4 text-green-600 text-xs font-semibold">
-                                {/* Inline amount released */}
                                 {activity.approval_type === "cash_payment" &&
                                   activity.cash_amount && (
                                     <span className="whitespace-nowrap">
@@ -720,7 +817,6 @@ const RecordsLandingPage = () => {
                                       ).toLocaleString()}
                                     </span>
                                   )}
-
                                 <a
                                   href={`${API_BASE}/uploads/${activity.approval_file}`}
                                   target="_blank"

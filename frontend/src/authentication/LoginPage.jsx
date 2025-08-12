@@ -66,7 +66,6 @@ const LoginPage = () => {
         navigate("/admin");
       } else if (role === "admin") {
         if (status === "approved") {
-          toast.success("Login successful!");
           navigate("/admin");
         } else {
           toast.error("Your admin account is pending approval.");
@@ -74,7 +73,6 @@ const LoginPage = () => {
         }
       } else if (role === "user") {
         if (status === "approved") {
-          toast.success("Login successful!");
           navigate("/landing");
         } else {
           toast.error("Your user account is pending approval.");

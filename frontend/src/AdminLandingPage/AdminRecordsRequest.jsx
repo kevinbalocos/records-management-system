@@ -324,7 +324,7 @@ const RequestDetailsModal = ({ request, isOpen, onClose, onUpdateStatus }) => {
   ].filter((doc) => doc.path);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-60 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto backdrop-blur-lg bg-opacity-60 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 text-white">
